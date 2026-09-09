@@ -1,0 +1,16 @@
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r'patients', views.PatientViewSet)
+router.register(r'memory', views.MemoryItemViewSet)
+router.register(r'mood', views.MoodLogViewSet)
+router.register(r'greetings', views.SocialGreetingViewSet)
+router.register(r'prescriptions', views.PrescriptionViewSet)
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('auth/register/', views.register_user, name='register'),
+    path('auth/me/', views.current_user, name='current-user'),
+]
