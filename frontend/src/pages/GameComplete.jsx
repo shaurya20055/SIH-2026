@@ -1,91 +1,98 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import Confetti from 'react-confetti';
+import { motion } from 'framer-motion';
+import { Home, Zap, Star, ArrowRight } from 'lucide-react';
 
-export default function GameComplete() {
-  const { t } = useTranslation();
+export default function GameComplete({ patientId }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const data = location.state || {};
+  const { score = 80, xp = 25, game = 'Brain Game', correct = 4, total = 5 } = location.state || {};
 
-  const { score = 0, accuracy = 0, duration = 0, stars = 1, xp_earned = 0, game_type = '', streak = 0, total_xp = 0, level = 1, level_title = '' } = data;
-
-  const [showConfetti, setShowConfetti] = useState(stars >= 2);
-
-  const gameNames = { face_recall: '🧓 Face Recall', flip_card: '🃏 Flip Card', sound_match: '🔊 Sound Match', daily_routine: '📋 Daily Routine' };
-
-  const formatDuration = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
-  };
-
-  const getMessage = () => {
-    if (accuracy >= 90) return t('wonderful');
-    if (accuracy >= 60) return t('great_job');
-    return t('keep_going');
-  };
+  const messages = [
+    'Wonderful! Your brain journey continues.',
+    'Amazing effort! Keep it up!',
+    'Brilliant! Your mind is getting sharper.',
+    'Great work! Every game strengthens your brain.',
+  ];
+  const message = messages[Math.floor(Math.random() * messages.length)];
 
   return (
-    <div className="game-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      {showConfetti && <Confetti recycle={false} numberOfPieces={200} onConfettiComplete={() => setShowConfetti(false)} />}
+    <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <motion.div
+        className="glass-card glow-indigo"
+        style={{ textAlign: 'center', padding: '3rem 2rem', maxWidth: '450px', width: '100%' }}
+        initial={{ opacity: 0, scale: 0.8, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+      >
+        {/* Celebration */}
+        <motion.div
+          style={{ fontSize: '4rem', marginBottom: '1rem' }}
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 5, -5, 0] }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+        >
+          🎉
+        </motion.div>
 
-      <div className="animate-fadeInUp text-center" style={{ width: '100%', maxWidth: '450px' }}>
-        <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉 {t('game_complete')}</h1>
-        <p className="text-gray mb-3">{gameNames[game_type] || game_type}</p>
+        <motion.h1
+          className="text-gradient"
+          style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+        >
+          {game} Complete!
+        </motion.h1>
 
-        {/* Stars */}
-        <div style={{ fontSize: '3rem', marginBottom: '1.5rem', letterSpacing: '0.5rem' }}>
-          {[1, 2, 3].map(s => (
-            <span key={s} style={{ opacity: s <= stars ? 1 : 0.2 }}>⭐</span>
-          ))}
-        </div>
+        <motion.p
+          style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '1.05rem' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+        >
+          {message}
+        </motion.p>
 
-        <h2 style={{ fontSize: '1.5rem', color: accuracy >= 80 ? 'var(--success)' : accuracy >= 50 ? 'var(--saffron)' : 'var(--coral)' }}>
-          {getMessage()}
-        </h2>
-
-        {/* Stats Grid */}
-        <div className="grid-2 mt-3 mb-3">
-          <div className="stat-card">
-            <div className="stat-value">{score}</div>
-            <div className="stat-label">{t('score')}</div>
+        {/* Score */}
+        <motion.div
+          className="flex justify-center gap-3 mb-3"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+        >
+          <div className="stat-card" style={{ padding: '1rem 1.5rem' }}>
+            <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+              <Star size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> {score}%
+            </div>
+            <div className="stat-label">Score</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{accuracy}%</div>
-            <div className="stat-label">{t('accuracy')}</div>
+          <div className="stat-card" style={{ padding: '1rem 1.5rem' }}>
+            <div className="stat-value" style={{ fontSize: '1.5rem', background: 'linear-gradient(135deg, #F59E0B, #FB923C)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              <Zap size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> +{xp}
+            </div>
+            <div className="stat-label">XP Earned</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: 'var(--saffron)' }}>+{xp_earned}</div>
-            <div className="stat-label">{t('xp')}</div>
+          <div className="stat-card" style={{ padding: '1rem 1.5rem' }}>
+            <div className="stat-value" style={{ fontSize: '1.5rem' }}>{correct}/{total}</div>
+            <div className="stat-label">Correct</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-value">{formatDuration(duration)}</div>
-            <div className="stat-label">{t('time_taken')}</div>
-          </div>
-        </div>
-
-        {/* Streak */}
-        {streak > 0 && (
-          <div className="badge-streak mb-3" style={{ display: 'inline-flex' }}>
-            🔥 {streak} {t('streak')}
-          </div>
-        )}
+        </motion.div>
 
         {/* Actions */}
-        <div className="flex flex-col gap-2 mt-3">
-          <button className="btn btn-primary btn-lg w-full" onClick={() => navigate(`/game/${game_type.replace('_', '-')}`)}>
-            🔄 {t('play_again')}
+        <motion.div
+          className="flex flex-col gap-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+        >
+          <button className="btn btn-primary btn-lg w-full" onClick={() => navigate('/games')}>
+            Play Another Game <ArrowRight size={18} />
           </button>
-          <button className="btn btn-outline w-full" onClick={() => navigate('/mood')}>
-            😊 {t('mood_check')}
+          <button className="btn btn-secondary w-full" onClick={() => navigate('/dashboard')}>
+            <Home size={18} /> Go Home
           </button>
-          <button className="btn btn-ghost w-full" onClick={() => navigate('/')}>
-            🏠 {t('go_home')}
-          </button>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

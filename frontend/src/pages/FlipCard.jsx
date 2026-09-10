@@ -1,134 +1,141 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import { generateGame, saveSession } from '../api';
 
+const FALLBACK_PAIRS = [
+  { id: 1, content: '🌺', label: 'Flower' },
+  { id: 2, content: '🍎', label: 'Apple' },
+  { id: 3, content: '🏠', label: 'House' },
+  { id: 4, content: '☀️', label: 'Sun' },
+  { id: 5, content: '🐦', label: 'Bird' },
+  { id: 6, content: '🌈', label: 'Rainbow' },
+];
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function FlipCard({ patientId }) {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
   const [flipped, setFlipped] = useState([]);
   const [matched, setMatched] = useState([]);
   const [moves, setMoves] = useState(0);
   const [startTime] = useState(Date.now());
-  const [loading, setLoading] = useState(true);
-  const [numPairs, setNumPairs] = useState(4);
-  const [disabled, setDisabled] = useState(false);
+  const lockRef = useRef(false);
 
   useEffect(() => { loadGame(); }, []);
 
   const loadGame = async () => {
-    setLoading(true);
+    let pairs = FALLBACK_PAIRS;
     try {
       const res = await generateGame(patientId, 'flip_card');
-      setCards(res.data.pairs);
-      setNumPairs(res.data.num_pairs);
-    } catch {
-      // Fallback
-      const fallback = [];
-      const items = ['Bihu 🎊', 'Rhino 🦏', 'Tea 🍵', 'Jaapi 🎩'];
-      items.forEach((item, i) => {
-        fallback.push({ id: i * 2, pair_id: i, type: 'text', content: item, label: item });
-        fallback.push({ id: i * 2 + 1, pair_id: i, type: 'text', content: item, label: item });
-      });
-      fallback.sort(() => Math.random() - 0.5);
-      setCards(fallback);
-      setNumPairs(4);
-    }
-    setLoading(false);
+      if (res.data?.pairs) pairs = res.data.pairs;
+    } catch {}
+
+    const numPairs = Math.min(pairs.length, 6);
+    const selected = pairs.slice(0, numPairs);
+    const deck = shuffleArray([
+      ...selected.map((p, i) => ({ ...p, uid: `a${i}`, pairId: p.id })),
+      ...selected.map((p, i) => ({ ...p, uid: `b${i}`, pairId: p.id })),
+    ]);
+    setCards(deck);
   };
 
-  const handleFlip = (index) => {
-    if (disabled || flipped.includes(index) || matched.includes(cards[index].pair_id)) return;
+  const handleFlip = (uid) => {
+    if (lockRef.current) return;
+    if (flipped.includes(uid) || matched.includes(uid)) return;
 
-    const newFlipped = [...flipped, index];
-    setFlipped(newFlipped);
+    const next = [...flipped, uid];
+    setFlipped(next);
 
-    if (newFlipped.length === 2) {
+    if (next.length === 2) {
+      lockRef.current = true;
       setMoves(m => m + 1);
-      setDisabled(true);
-      const [first, second] = newFlipped;
+      const [a, b] = next.map(u => cards.find(c => c.uid === u));
 
-      if (cards[first].pair_id === cards[second].pair_id) {
-        setMatched(m => [...m, cards[first].pair_id]);
-        setFlipped([]);
-        setDisabled(false);
+      if (a.pairId === b.pairId) {
+        setTimeout(() => {
+          setMatched(prev => [...prev, a.uid, b.uid]);
+          setFlipped([]);
+          lockRef.current = false;
 
-        // Check win
-        if (matched.length + 1 === numPairs) {
-          setTimeout(() => finishGame(), 500);
-        }
+          if (matched.length + 2 === cards.length) {
+            const elapsed = Math.round((Date.now() - startTime) / 1000);
+            const accuracy = Math.round((cards.length / 2 / (moves + 1)) * 100);
+            try {
+              saveSession({ patient: patientId, game_type: 'flip_card', score: accuracy, accuracy: Math.min(accuracy, 100), duration_seconds: elapsed, cognitive_level: 1 });
+            } catch {}
+            navigate('/game-complete', { state: { score: Math.min(accuracy, 100), xp: 30, game: 'Memory Match', correct: cards.length / 2, total: cards.length / 2 } });
+          }
+
+          if ('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance('Match found!');
+            u.rate = 0.9;
+            window.speechSynthesis.speak(u);
+          }
+        }, 400);
       } else {
         setTimeout(() => {
           setFlipped([]);
-          setDisabled(false);
-        }, 1000);
+          lockRef.current = false;
+        }, 800);
       }
     }
   };
 
-  const finishGame = async () => {
-    const duration = Math.round((Date.now() - startTime) / 1000);
-    const accuracy = Math.round(Math.max(0, 100 - (moves - numPairs) * 5));
-    const score = numPairs * 10 + Math.max(0, 50 - moves);
-    try {
-      const res = await saveSession({
-        patient: patientId, game_type: 'flip_card', score, accuracy,
-        duration_seconds: duration, difficulty_level: numPairs <= 4 ? 1 : numPairs <= 6 ? 2 : 3,
-      });
-      navigate('/game-complete', {
-        state: { score, accuracy, duration, stars: res.data.stars, xp_earned: res.data.xp_earned, game_type: 'flip_card', streak: res.data.streak, total_xp: res.data.total_xp },
-      });
-    } catch {
-      navigate('/game-complete', {
-        state: { score, accuracy, duration, stars: accuracy >= 90 ? 3 : accuracy >= 60 ? 2 : 1, xp_earned: 20, game_type: 'flip_card' },
-      });
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="game-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-        <div className="animate-float" style={{ fontSize: '3rem' }}>🃏</div>
-      </div>
-    );
-  }
-
-  const gridCols = numPairs <= 4 ? 4 : 4;
+  const pairCount = cards.length / 2;
+  const gridClass = pairCount <= 4 ? 'pairs-4' : pairCount <= 6 ? 'pairs-6' : 'pairs-8';
 
   return (
     <div className="game-container">
-      <div className="game-header">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="game-header">
         <div className="flex items-center justify-between mb-2">
-          <button className="btn btn-ghost" onClick={() => navigate('/games')}>← {t('back')}</button>
-          <span style={{ fontWeight: 700 }}>🃏 {t('flip_card')}</span>
-          <span style={{ fontWeight: 700, color: 'var(--saffron)' }}>{t('moves')}: {moves}</span>
+          <button className="btn btn-ghost" onClick={() => navigate('/games')}>
+            <ArrowLeft size={18} /> Back
+          </button>
+          <div className="flex items-center gap-3">
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Moves: {moves}
+            </span>
+            <span style={{ color: 'var(--success)', fontSize: '0.9rem' }}>
+              Matched: {matched.length / 2}/{pairCount}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <span style={{ fontWeight: 600, color: 'var(--teal)' }}>{t('matches_found')}: {matched.length} / {numPairs}</span>
+        <div className="xp-bar">
+          <div className="xp-bar-fill" style={{ width: `${(matched.length / cards.length) * 100}%` }} />
         </div>
-      </div>
+      </motion.div>
 
-      <div className={`flip-grid pairs-${numPairs <= 4 ? 4 : numPairs <= 6 ? 4 : 4}`}
-        style={{ gridTemplateColumns: `repeat(${gridCols}, 1fr)` }}>
-        {cards.map((card, index) => {
-          const isFlipped = flipped.includes(index) || matched.includes(card.pair_id);
-          const isMatched = matched.includes(card.pair_id);
+      <h2 className="game-question">Find the matching pairs</h2>
+
+      <div className={`flip-grid ${gridClass}`}>
+        {cards.map((card) => {
+          const isFlipped = flipped.includes(card.uid) || matched.includes(card.uid);
+          const isMatched = matched.includes(card.uid);
           return (
-            <div
-              key={card.id}
+            <motion.div
+              key={card.uid}
               className={`flip-card ${isFlipped ? 'flipped' : ''} ${isMatched ? 'matched' : ''}`}
-              onClick={() => handleFlip(index)}
+              onClick={() => handleFlip(card.uid)}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: Math.random() * 0.3 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="flip-card-front">❓</div>
+              <div className="flip-card-front">🧠</div>
               <div className="flip-card-back">
-                {card.type === 'image' ? (
-                  <img src={card.content} alt={card.label} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.textContent = card.label; }} />
-                ) : (
-                  <span style={{ fontSize: '0.95rem', fontWeight: 600, padding: '0.5rem' }}>{card.content}</span>
-                )}
+                <span style={{ fontSize: '2rem' }}>{card.content}</span>
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

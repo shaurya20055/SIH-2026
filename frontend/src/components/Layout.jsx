@@ -1,34 +1,82 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Home, Gamepad2, Heart, Pill, Calendar, BarChart3, Users, Bell, Globe, User } from 'lucide-react';
+import AIAssistant from './AIAssistant';
+
+const NAV_ITEMS = [
+  { to: '/dashboard', icon: Home, label: 'Home' },
+  { to: '/games', icon: Gamepad2, label: 'Brain Games' },
+  { to: '/daily-care', icon: Heart, label: 'Daily Care' },
+  { to: '/medicines', icon: Pill, label: 'Medicines' },
+  { to: '/appointments', icon: Calendar, label: 'Appointments' },
+  { to: '/progress', icon: BarChart3, label: 'Progress' },
+  { to: '/connect', icon: Users, label: 'Connect' },
+];
+
+const MOBILE_NAV = [
+  { to: '/dashboard', icon: Home, label: 'Home' },
+  { to: '/games', icon: Gamepad2, label: 'Games' },
+  { to: '/daily-care', icon: Heart, label: 'Care' },
+  { to: '/medicines', icon: Pill, label: 'Meds' },
+  { to: '/progress', icon: BarChart3, label: 'Progress' },
+];
 
 export default function Layout({ patientId }) {
   const { t } = useTranslation();
+  const location = useLocation();
 
   return (
-    <div>
-      <Outlet />
-      <nav className="bottom-nav">
-        <NavLink to="/" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} end>
-          <span className="nav-icon">🏠</span>
-          <span>{t('home')}</span>
+    <div style={{ minHeight: '100vh' }}>
+      {/* Desktop Top Navigation */}
+      <nav className="top-nav">
+        <NavLink to="/dashboard" className="nav-brand">
+          🧠 MindSathi
         </NavLink>
-        <NavLink to="/games" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <span className="nav-icon">🎮</span>
-          <span>{t('games')}</span>
-        </NavLink>
-        <NavLink to="/reminders" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <span className="nav-icon">⏰</span>
-          <span>{t('reminders')}</span>
-        </NavLink>
-        <NavLink to="/mood" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <span className="nav-icon">😊</span>
-          <span>{t('mood_check')}</span>
-        </NavLink>
-        <NavLink to="/caregiver" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <span className="nav-icon">📊</span>
-          <span>{t('dashboard')}</span>
-        </NavLink>
+
+        {NAV_ITEMS.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+          >
+            <span className="nav-icon"><item.icon size={16} /></span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+
+        <div className="nav-right">
+          <button className="nav-link" title="Notifications">
+            <Bell size={16} />
+          </button>
+          <button className="nav-link" title="Language">
+            <Globe size={16} />
+          </button>
+          <button className="nav-link" title="Profile">
+            <User size={16} />
+          </button>
+        </div>
       </nav>
+
+      {/* Page Content */}
+      <Outlet />
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="bottom-nav">
+        {MOBILE_NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+            end={item.to === '/dashboard'}
+          >
+            <span className="nav-icon"><item.icon size={22} /></span>
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 }

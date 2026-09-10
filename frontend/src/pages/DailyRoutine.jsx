@@ -1,144 +1,152 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { generateGame, saveSession } from '../api';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Check } from 'lucide-react';
+import { saveSession } from '../api';
+
+const ROUTINE_ITEMS = [
+  { id: 1, icon: '🌅', label: 'Wake up' },
+  { id: 2, icon: '🪥', label: 'Brush teeth' },
+  { id: 3, icon: '🚿', label: 'Take a bath' },
+  { id: 4, icon: '🍳', label: 'Eat breakfast' },
+  { id: 5, icon: '💊', label: 'Take medicine' },
+  { id: 6, icon: '🚶', label: 'Morning walk' },
+];
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 export default function DailyRoutine({ patientId }) {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const [activities, setActivities] = useState([]);
-  const [startTime] = useState(Date.now());
-  const [loading, setLoading] = useState(true);
-  const [submitted, setSubmitted] = useState(false);
+  const [items, setItems] = useState(() => shuffleArray(ROUTINE_ITEMS));
+  const [checked, setChecked] = useState(false);
   const [result, setResult] = useState(null);
-  const [dragIndex, setDragIndex] = useState(null);
+  const [dragIdx, setDragIdx] = useState(null);
+  const [startTime] = useState(Date.now());
 
-  useEffect(() => { loadGame(); }, []);
+  const handleDragStart = (idx) => setDragIdx(idx);
 
-  const loadGame = async () => {
-    setLoading(true);
-    try {
-      const res = await generateGame(patientId, 'daily_routine');
-      setActivities(res.data.activities);
-    } catch {
-      const fallback = [
-        { id: 1, label: 'Wake Up', icon: '🌅', correct_order: 1 },
-        { id: 2, label: 'Brush Teeth', icon: '🪥', correct_order: 2 },
-        { id: 3, label: 'Drink Tea', icon: '☕', correct_order: 3 },
-        { id: 4, label: 'Take Medicine', icon: '💊', correct_order: 4 },
-      ].sort(() => Math.random() - 0.5);
-      setActivities(fallback);
-    }
-    setLoading(false);
+  const handleDrop = (targetIdx) => {
+    if (dragIdx === null || dragIdx === targetIdx) return;
+    const newItems = [...items];
+    const [moved] = newItems.splice(dragIdx, 1);
+    newItems.splice(targetIdx, 0, moved);
+    setItems(newItems);
+    setDragIdx(null);
   };
 
-  const handleDragStart = (index) => setDragIndex(index);
-  const handleDragOver = (e) => e.preventDefault();
-  const handleDrop = (dropIndex) => {
-    if (dragIndex === null || dragIndex === dropIndex) return;
-    const newItems = [...activities];
-    const [moved] = newItems.splice(dragIndex, 1);
-    newItems.splice(dropIndex, 0, moved);
-    setActivities(newItems);
-    setDragIndex(null);
-  };
-
-  // Touch drag support
-  const moveItem = (from, to) => {
-    if (to < 0 || to >= activities.length) return;
-    const newItems = [...activities];
-    const [moved] = newItems.splice(from, 1);
-    newItems.splice(to, 0, moved);
-    setActivities(newItems);
-  };
-
-  const handleSubmit = async () => {
+  const checkOrder = () => {
     let correct = 0;
-    activities.forEach((act, i) => {
-      if (act.correct_order === i + 1) correct++;
+    items.forEach((item, i) => {
+      if (item.id === ROUTINE_ITEMS[i].id) correct++;
     });
-    const accuracy = Math.round((correct / activities.length) * 100);
-    const score = correct * 10;
-    const duration = Math.round((Date.now() - startTime) / 1000);
-    setResult({ correct, total: activities.length, accuracy, score });
-    setSubmitted(true);
+    const accuracy = Math.round((correct / items.length) * 100);
+    setResult({ correct, total: items.length, accuracy });
+    setChecked(true);
 
+    const elapsed = Math.round((Date.now() - startTime) / 1000);
     try {
-      const res = await saveSession({
-        patient: patientId, game_type: 'daily_routine', score, accuracy,
-        duration_seconds: duration, difficulty_level: activities.length <= 4 ? 1 : activities.length <= 6 ? 2 : 3,
-      });
-      setTimeout(() => {
-        navigate('/game-complete', {
-          state: { score, accuracy, duration, stars: res.data.stars, xp_earned: res.data.xp_earned, game_type: 'daily_routine', streak: res.data.streak },
-        });
-      }, 2000);
-    } catch {
-      setTimeout(() => {
-        navigate('/game-complete', {
-          state: { score, accuracy, duration, stars: accuracy >= 90 ? 3 : accuracy >= 60 ? 2 : 1, xp_earned: 20, game_type: 'daily_routine' },
-        });
-      }, 2000);
+      saveSession({ patient: patientId, game_type: 'daily_routine', score: accuracy, accuracy, duration_seconds: elapsed, cognitive_level: 1 });
+    } catch {}
+
+    if ('speechSynthesis' in window) {
+      const msg = accuracy >= 80 ? 'Excellent! You arranged the routine correctly!' : 'Good try! Let\'s practice again.';
+      const u = new SpeechSynthesisUtterance(msg);
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="game-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-        <div className="animate-float" style={{ fontSize: '3rem' }}>📋</div>
-      </div>
-    );
-  }
 
   return (
     <div className="game-container">
-      <div className="game-header">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="game-header">
         <div className="flex items-center justify-between mb-2">
-          <button className="btn btn-ghost" onClick={() => navigate('/games')}>← {t('back')}</button>
-          <span style={{ fontWeight: 700 }}>📋 {t('daily_routine')}</span>
-          <div style={{ width: 60 }} />
+          <button className="btn btn-ghost" onClick={() => navigate('/games')}>
+            <ArrowLeft size={18} /> Back
+          </button>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Daily Routine</span>
         </div>
+      </motion.div>
+
+      <h2 className="game-question">Arrange your morning routine in the right order</h2>
+      <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+        Drag items to rearrange them
+      </p>
+
+      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+        {items.map((item, i) => {
+          const isCorrect = checked && item.id === ROUTINE_ITEMS[i].id;
+          const isWrong = checked && item.id !== ROUTINE_ITEMS[i].id;
+
+          return (
+            <motion.div
+              key={item.id}
+              className="routine-item"
+              draggable
+              onDragStart={() => handleDragStart(i)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(i)}
+              initial={{ opacity: 0, x: -15 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+              style={{
+                borderColor: isCorrect ? 'var(--success)' : isWrong ? 'var(--danger)' : undefined,
+                background: isCorrect ? 'var(--success-bg)' : isWrong ? 'var(--danger-bg)' : undefined,
+              }}
+            >
+              <span className="routine-order">{i + 1}</span>
+              <span className="routine-icon">{item.icon}</span>
+              <span style={{ flex: 1, fontWeight: 500 }}>{item.label}</span>
+              {isCorrect && <Check size={18} color="var(--success)" />}
+            </motion.div>
+          );
+        })}
       </div>
 
-      <h2 className="game-question">{t('arrange_order')}</h2>
-      <p className="text-center text-gray mb-3">{t('drag_hint')}</p>
-
-      <div>
-        {activities.map((act, index) => (
-          <div
-            key={act.id || index}
-            className={`routine-item ${dragIndex === index ? 'dragging' : ''} ${submitted && act.correct_order === index + 1 ? 'correct' : ''}`}
-            draggable
-            onDragStart={() => handleDragStart(index)}
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(index)}
-            style={submitted ? {
-              borderColor: act.correct_order === index + 1 ? 'var(--success)' : 'var(--danger)',
-              background: act.correct_order === index + 1 ? '#e8f5e1' : '#fde8e7',
-            } : {}}
-          >
-            <span className="routine-order">{index + 1}</span>
-            <span className="routine-icon">{act.icon}</span>
-            <span style={{ flex: 1, fontWeight: 500 }}>{act.label}</span>
-            <div className="flex flex-col gap-1">
-              <button className="btn btn-ghost" onClick={() => moveItem(index, index - 1)} style={{ padding: '0.2rem 0.5rem', minHeight: 'auto', fontSize: '1.2rem' }}>▲</button>
-              <button className="btn btn-ghost" onClick={() => moveItem(index, index + 1)} style={{ padding: '0.2rem 0.5rem', minHeight: 'auto', fontSize: '1.2rem' }}>▼</button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {!submitted ? (
-        <button className="btn btn-primary btn-lg w-full mt-3" onClick={handleSubmit}>
-          ✅ {t('submit')}
-        </button>
+      {!checked ? (
+        <motion.button
+          className="btn btn-primary btn-lg w-full mt-3"
+          onClick={checkOrder}
+          style={{ maxWidth: '500px', margin: '1.5rem auto', display: 'flex' }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Check size={18} /> Check Order
+        </motion.button>
       ) : (
-        <div className="text-center mt-3 animate-fadeInUp">
-          <h2 style={{ color: result.accuracy >= 80 ? 'var(--success)' : 'var(--saffron)' }}>
-            {result.correct} / {result.total} {t('correct').split('!')[0]}!
-          </h2>
-          <p className="text-gray">{t('loading')}</p>
-        </div>
+        <motion.div
+          className="glass-card mt-3"
+          style={{ maxWidth: '500px', margin: '1.5rem auto', textAlign: 'center' }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>
+            {result.accuracy >= 80 ? '🎉' : '💪'}
+          </div>
+          <h3 style={{ marginBottom: '0.5rem' }}>
+            {result.correct} / {result.total} correct
+          </h3>
+          <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>
+            {result.accuracy >= 80 ? 'Wonderful! Your brain journey continues.' : 'Good effort! Practice makes perfect.'}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <button className="btn btn-primary" onClick={() => {
+              setItems(shuffleArray(ROUTINE_ITEMS));
+              setChecked(false);
+              setResult(null);
+            }}>
+              Try Again
+            </button>
+            <button className="btn btn-secondary" onClick={() => navigate('/games')}>
+              More Games
+            </button>
+          </div>
+        </motion.div>
       )}
     </div>
   );

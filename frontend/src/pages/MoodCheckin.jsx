@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import { logMood } from '../api';
 
 const MOODS = [
-  { score: 1, emoji: '😢', label: 'Very Sad' },
-  { score: 2, emoji: '😟', label: 'Sad' },
+  { score: 5, emoji: '🙂', label: 'Happy' },
+  { score: 4, emoji: '😌', label: 'Calm' },
   { score: 3, emoji: '😐', label: 'Okay' },
-  { score: 4, emoji: '😊', label: 'Happy' },
-  { score: 5, emoji: '😄', label: 'Very Happy' },
+  { score: 2, emoji: '😟', label: 'Worried' },
+  { score: 1, emoji: '😔', label: 'Sad' },
 ];
 
 export default function MoodCheckin({ patientId }) {
@@ -27,7 +28,7 @@ export default function MoodCheckin({ patientId }) {
     setSaved(true);
 
     if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(t('mood_saved'));
+      const u = new SpeechSynthesisUtterance('Thank you for sharing how you feel.');
       u.rate = 0.9;
       window.speechSynthesis.speak(u);
     }
@@ -35,37 +36,65 @@ export default function MoodCheckin({ patientId }) {
 
   return (
     <div className="page-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '70vh' }}>
-      <div className="animate-fadeInUp text-center" style={{ width: '100%', maxWidth: '500px' }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        style={{ width: '100%', maxWidth: '500px', textAlign: 'center' }}
+      >
         {!saved ? (
           <>
-            <h1 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>{t('mood_check')}</h1>
-            <p className="text-gray mb-4">Tap the emoji that matches how you feel</p>
+            <motion.div
+              initial={{ scale: 0.8 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200 }}
+              style={{ fontSize: '3rem', marginBottom: '1rem' }}
+            >
+              💭
+            </motion.div>
+            <h1 style={{ fontSize: '1.8rem', marginBottom: '0.5rem' }}>How are you feeling today?</h1>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Tap the emoji that matches your mood</p>
 
             <div className="mood-picker">
-              {MOODS.map((mood) => (
-                <button
+              {MOODS.map((mood, i) => (
+                <motion.button
                   key={mood.score}
                   className={`mood-btn ${selected === mood.score ? 'selected' : ''}`}
                   onClick={() => handleSelect(mood)}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 + i * 0.08 }}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.9 }}
                 >
                   {mood.emoji}
-                </button>
+                </motion.button>
+              ))}
+            </div>
+
+            <div className="flex justify-center gap-3 mt-2" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              {MOODS.map(m => (
+                <span key={m.score} style={{ minWidth: '60px', textAlign: 'center' }}>{m.label}</span>
               ))}
             </div>
           </>
         ) : (
-          <div className="animate-fadeInUp">
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 200 }}>
             <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>
               {MOODS.find(m => m.score === selected)?.emoji}
             </div>
-            <h2 style={{ color: 'var(--teal)' }}>{t('mood_saved')}</h2>
-            <p className="text-gray mb-3">Thank you for sharing how you feel.</p>
-            <button className="btn btn-primary btn-lg" onClick={() => navigate('/')}>
-              🏠 {t('go_home')}
-            </button>
-          </div>
+            <h2 className="text-gradient" style={{ marginBottom: '0.5rem' }}>Thank you for sharing 💛</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem' }}>Your feelings matter. We're here for you.</p>
+            <motion.button
+              className="btn btn-primary btn-lg"
+              onClick={() => navigate('/dashboard')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              🏠 Go Home
+            </motion.button>
+          </motion.div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
