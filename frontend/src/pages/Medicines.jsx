@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Camera, Plus, Clock, AlertTriangle, Check, X } from 'lucide-react';
+import { Upload, Camera, Plus, Clock, AlertTriangle, Check, X, Pill, FileText, Info } from 'lucide-react';
+import gsap from 'gsap';
 
 const MEDICINES = [
   { id: 1, name: 'Metformin 500mg', dosage: '1 tablet', frequency: 'Twice daily', total: 30, remaining: 18, times: ['08:00', '20:00'], taken: [true, false] },
@@ -12,8 +13,17 @@ const MEDICINES = [
 export default function Medicines({ patientId }) {
   const [medicines, setMedicines] = useState(MEDICINES);
   const [showReminder, setShowReminder] = useState(null);
-  const [showUpload, setShowUpload] = useState(false);
   const [tab, setTab] = useState('schedule');
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      gsap.fromTo(containerRef.current.querySelectorAll('.gsap-item'),
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+      );
+    }
+  }, [tab]);
 
   const takeMedicine = (medId, timeIdx) => {
     setMedicines(prev => prev.map(m => {
@@ -32,7 +42,10 @@ export default function Medicines({ patientId }) {
   return (
     <div className="page-container">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="page-header">
-        <h1 className="page-title">💊 Medicines</h1>
+        <h1 className="page-title">
+          <span className="title-icon"><Pill size={22} /></span>
+          Medicines
+        </h1>
         <p className="page-subtitle">Track your medications and stay on schedule</p>
       </motion.div>
 
@@ -44,7 +57,7 @@ export default function Medicines({ patientId }) {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="pill-icon">💊</div>
+          <div className="pill-icon"><Pill size={48} /></div>
           <h2 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Time for your medicine</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>
             {nextDue.name} — {nextDue.dosage}
@@ -67,142 +80,141 @@ export default function Medicines({ patientId }) {
 
       {/* Tabs */}
       <motion.div className="tab-group" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
-        <button className={`tab-btn ${tab === 'schedule' ? 'active' : ''}`} onClick={() => setTab('schedule')}>📋 Schedule</button>
-        <button className={`tab-btn ${tab === 'inventory' ? 'active' : ''}`} onClick={() => setTab('inventory')}>📦 Inventory</button>
-        <button className={`tab-btn ${tab === 'prescription' ? 'active' : ''}`} onClick={() => setTab('prescription')}>📄 Prescription</button>
+        <button className={`tab-btn ${tab === 'schedule' ? 'active' : ''}`} onClick={() => setTab('schedule')}>Schedule</button>
+        <button className={`tab-btn ${tab === 'inventory' ? 'active' : ''}`} onClick={() => setTab('inventory')}>Inventory</button>
+        <button className={`tab-btn ${tab === 'prescription' ? 'active' : ''}`} onClick={() => setTab('prescription')}>Prescription</button>
       </motion.div>
 
-      {/* Schedule Tab */}
-      {tab === 'schedule' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          {medicines.map((med, i) => (
-            <motion.div
-              key={med.id}
-              className="glass-card mb-2"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.05 }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <h3 style={{ fontSize: '1.05rem' }}>{med.name}</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{med.dosage} · {med.frequency}</p>
-                </div>
-                <span style={{ fontSize: '1.5rem' }}>💊</span>
-              </div>
-              <div className="flex gap-2">
-                {med.times.map((time, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: 'var(--radius-lg)',
-                      background: med.taken[idx] ? 'var(--success-bg)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${med.taken[idx] ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
-                      display: 'flex', alignItems: 'center', gap: '0.5rem',
-                      fontSize: '0.9rem',
-                    }}
-                  >
-                    <Clock size={14} />
-                    <span>{time}</span>
-                    {med.taken[idx] && <Check size={14} color="var(--success)" />}
+      <div ref={containerRef}>
+        {/* Schedule Tab */}
+        {tab === 'schedule' && (
+          <div>
+            {medicines.map((med, i) => (
+              <div key={med.id} className="glass-card mb-2 gsap-item">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem' }}>{med.name}</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{med.dosage} · {med.frequency}</p>
                   </div>
-                ))}
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 'var(--radius-md)',
+                    background: 'rgba(124,58,237,0.1)', color: 'var(--accent-violet)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Pill size={20} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {med.times.map((time, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: 'var(--radius-lg)',
+                        background: med.taken[idx] ? 'var(--success-bg)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${med.taken[idx] ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        fontSize: '0.9rem',
+                        color: med.taken[idx] ? 'var(--text-primary)' : 'var(--text-secondary)'
+                      }}
+                    >
+                      <Clock size={14} />
+                      <span>{time}</span>
+                      {med.taken[idx] && <Check size={14} color="var(--success)" />}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* Inventory Tab */}
-      {tab === 'inventory' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          {medicines.map((med, i) => {
-            const pct = (med.remaining / med.total) * 100;
-            const isLow = pct < 30;
-            return (
-              <motion.div
-                key={med.id}
-                className="medicine-card mb-2"
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.05 }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <h3 style={{ fontSize: '1.05rem' }}>{med.name}</h3>
-                  {isLow && (
-                    <span className="badge badge-warning">
-                      <AlertTriangle size={12} /> Refill soon
+        {/* Inventory Tab */}
+        {tab === 'inventory' && (
+          <div>
+            {medicines.map((med, i) => {
+              const pct = (med.remaining / med.total) * 100;
+              const isLow = pct < 30;
+              return (
+                <div key={med.id} className="medicine-card mb-2 gsap-item">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 style={{ fontSize: '1.05rem' }}>{med.name}</h3>
+                    {isLow && (
+                      <span className="badge badge-warning">
+                        <AlertTriangle size={12} /> Refill soon
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                    {med.total} tablets total
+                  </p>
+                  <div className="medicine-progress">
+                    <div className={`medicine-progress-fill ${isLow ? 'low' : ''}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between" style={{ fontSize: '0.85rem' }}>
+                    <span style={{ color: isLow ? 'var(--warning)' : 'var(--text-secondary)' }}>
+                      {med.remaining} remaining
                     </span>
-                  )}
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      ~{Math.ceil(med.remaining / (med.times.length || 1))} days left
+                    </span>
+                  </div>
                 </div>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                  {med.total} tablets total
-                </p>
-                <div className="medicine-progress">
-                  <div className={`medicine-progress-fill ${isLow ? 'low' : ''}`} style={{ width: `${pct}%` }} />
-                </div>
-                <div className="flex items-center justify-between" style={{ fontSize: '0.85rem' }}>
-                  <span style={{ color: isLow ? 'var(--warning)' : 'var(--text-secondary)' }}>
-                    {med.remaining} remaining
-                  </span>
-                  <span style={{ color: 'var(--text-muted)' }}>
-                    ~{Math.ceil(med.remaining / (med.times.length || 1))} days left
-                  </span>
-                </div>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-      )}
+              );
+            })}
+          </div>
+        )}
 
-      {/* Prescription Tab */}
-      {tab === 'prescription' && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📄</div>
-            <h3 style={{ marginBottom: '0.5rem' }}>Upload Prescription</h3>
-            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
-              Upload or scan your prescription and our AI will extract medicine details for caregiver confirmation.
-            </p>
-
-            <div style={{
-              padding: '2rem', border: '2px dashed var(--glass-border)',
-              borderRadius: 'var(--radius-xl)', marginBottom: '1.5rem',
-              background: 'rgba(255,255,255,0.02)',
-            }}>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                Drag & drop or click to upload
+        {/* Prescription Tab */}
+        {tab === 'prescription' && (
+          <div className="gsap-item">
+            <div className="glass-card" style={{ textAlign: 'center', padding: '3rem 2rem' }}>
+              <div style={{ color: 'var(--accent-purple)', marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                <FileText size={48} />
+              </div>
+              <h3 style={{ marginBottom: '0.5rem' }}>Upload Prescription</h3>
+              <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '0.9rem' }}>
+                Upload or scan your prescription and our AI will extract medicine details for caregiver confirmation.
               </p>
-            </div>
 
-            <div className="flex gap-2 justify-center">
-              <button className="btn btn-primary">
-                <Upload size={18} /> Upload Image
-              </button>
-              <button className="btn btn-secondary">
-                <Camera size={18} /> Scan Prescription
-              </button>
-            </div>
+              <div style={{
+                padding: '2rem', border: '2px dashed var(--glass-border)',
+                borderRadius: 'var(--radius-xl)', marginBottom: '1.5rem',
+                background: 'rgba(255,255,255,0.02)',
+              }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                  Drag & drop or click to upload
+                </p>
+              </div>
 
-            <div className="alert-banner info mt-3" style={{ textAlign: 'left' }}>
-              <span>ℹ️</span>
-              <span>AI extracts medicine details but requires caregiver confirmation before adding to your schedule. AI never independently prescribes medication.</span>
-            </div>
+              <div className="flex gap-2 justify-center">
+                <button className="btn btn-primary">
+                  <Upload size={18} /> Upload Image
+                </button>
+                <button className="btn btn-secondary">
+                  <Camera size={18} /> Scan Prescription
+                </button>
+              </div>
 
-            {/* OCR Flow Preview */}
-            <div className="flex items-center justify-center gap-1 mt-3" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              <span className="badge badge-info">Upload</span>
-              <span>→</span>
-              <span className="badge badge-info">OCR Extract</span>
-              <span>→</span>
-              <span className="badge badge-warning">Caregiver Confirm</span>
-              <span>→</span>
-              <span className="badge badge-success">Schedule Added</span>
+              <div className="alert-banner info mt-3" style={{ textAlign: 'left' }}>
+                <span><Info size={16} /></span>
+                <span>AI extracts medicine details but requires caregiver confirmation before adding to your schedule. AI never independently prescribes medication.</span>
+              </div>
+
+              {/* OCR Flow Preview */}
+              <div className="flex items-center justify-center gap-1 mt-3" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                <span className="badge badge-info">Upload</span>
+                <span>→</span>
+                <span className="badge badge-info">OCR Extract</span>
+                <span>→</span>
+                <span className="badge badge-warning">Caregiver Confirm</span>
+                <span>→</span>
+                <span className="badge badge-success">Schedule Added</span>
+              </div>
             </div>
           </div>
-        </motion.div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
+import gsap from 'gsap';
 
 const BrainScene = lazy(() => import('../components/3d/BrainScene'));
 
@@ -13,12 +13,33 @@ const HOLO_LABELS = [
 ];
 
 export default function HeroLanding({ onStart }) {
-  const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
+  const contentRef = useRef(null);
+  const labelsRef = useRef([]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoaded(true), 300);
-    return () => clearTimeout(timer);
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    tl.fromTo(contentRef.current?.querySelector('.hero-tag'),
+      { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.6, delay: 0.3 })
+      .fromTo(contentRef.current?.querySelector('.hero-line-1'),
+        { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
+      .fromTo(contentRef.current?.querySelector('.hero-line-2'),
+        { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.4')
+      .fromTo(contentRef.current?.querySelector('.hero-subtitle'),
+        { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
+      .fromTo(contentRef.current?.querySelector('.hero-ctas'),
+        { opacity: 0, y: 15 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.3');
+
+    // Animate holo labels
+    labelsRef.current.forEach((el, i) => {
+      if (el) {
+        gsap.fromTo(el,
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.8, delay: 1.5 + i * 0.3, ease: 'power3.out' }
+        );
+      }
+    });
   }, []);
 
   const handleStart = () => {
@@ -34,87 +55,49 @@ export default function HeroLanding({ onStart }) {
           <BrainScene />
         </Suspense>
         {/* Floating holographic labels */}
-        {HOLO_LABELS.map((label) => (
-          <motion.div
+        {HOLO_LABELS.map((label, i) => (
+          <div
             key={label.text}
             className="holo-label"
-            style={{ top: label.top, left: label.left }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={loaded ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 1.5 + label.delay * 0.3, duration: 0.8 }}
+            style={{ top: label.top, left: label.left, opacity: 0 }}
+            ref={(el) => (labelsRef.current[i] = el)}
           >
             {label.text}
-          </motion.div>
+          </div>
         ))}
       </div>
 
       {/* Hero Content */}
-      <div className="hero-content">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
-          <motion.p
-            style={{
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              color: 'var(--accent-cyan)',
-              letterSpacing: '0.15em',
-              textTransform: 'uppercase',
-              marginBottom: '1rem',
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-          >
-            AI-Powered Cognitive Wellness
-          </motion.p>
+      <div className="hero-content" ref={contentRef}>
+        <p className="hero-tag" style={{
+          fontSize: '0.85rem', fontWeight: 600, color: 'var(--accent-violet)',
+          letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '1rem', opacity: 0,
+        }}>
+          AI-Powered Cognitive Wellness
+        </p>
 
-          <h1 className="hero-title">
-            <motion.span
-              style={{ display: 'block' }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.7 }}
-            >
-              Keep Exploring.
-            </motion.span>
-            <motion.span
-              className="text-gradient"
-              style={{ display: 'block' }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.7 }}
-            >
-              Keep Smiling.
-            </motion.span>
-          </h1>
+        <h1 className="hero-title">
+          <span className="hero-line-1" style={{ display: 'block', opacity: 0 }}>
+            Keep Exploring.
+          </span>
+          <span className="hero-line-2 text-gradient" style={{ display: 'block', opacity: 0 }}>
+            Keep Smiling.
+          </span>
+        </h1>
 
-          <motion.p
-            className="hero-subtitle"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.0, duration: 0.7 }}
-          >
-            An intelligent companion for memory, meaningful routines
-            and brighter everyday moments.
-          </motion.p>
+        <p className="hero-subtitle" style={{ opacity: 0 }}>
+          An intelligent companion for memory, meaningful routines
+          and brighter everyday moments.
+        </p>
 
-          <motion.div
-            className="hero-ctas"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.3, duration: 0.7 }}
-          >
-            <button className="btn btn-glow" onClick={handleStart}>
-              Start Your Brain Journey →
-            </button>
-            <a href="#features" className="btn btn-secondary">
-              How MindSathi Helps
-            </a>
-          </motion.div>
-        </motion.div>
+        <div className="hero-ctas" style={{ opacity: 0 }}>
+          <button className="btn btn-glow" onClick={handleStart}>
+            Start Your Brain Journey
+          </button>
+          <a href="#features" className="btn btn-secondary">
+            How MindSathi Helps
+          </a>
+        </div>
       </div>
     </section>
   );

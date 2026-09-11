@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Mic, Send } from 'lucide-react';
+import { MessageCircle, X, Mic, Send, Brain } from 'lucide-react';
 
 const SUGGESTIONS = [
   'Remind me to take my medicine.',
@@ -10,7 +10,7 @@ const SUGGESTIONS = [
 ];
 
 const INITIAL_MESSAGES = [
-  { role: 'assistant', text: 'Hello! I\'m MindSathi, your cognitive wellness companion. How can I help you today? 🌸' },
+  { role: 'assistant', text: 'Hello! I\'m MindSathi, your cognitive wellness companion. How can I help you today?' },
 ];
 
 export default function AIAssistant() {
@@ -28,14 +28,14 @@ export default function AIAssistant() {
     // Simulated AI response
     setTimeout(() => {
       const responses = {
-        medicine: 'Your next medicine, Metformin 500mg, is scheduled at 2:00 PM. I\'ll remind you when it\'s time! 💊',
-        activity: 'Your next activity is the Focus Challenge game. Would you like to start it now? 🧩',
-        appointment: 'Your next appointment is with Dr. Sharma on Monday at 11:00 AM at City Hospital. 🏥',
-        perform: 'Today you\'ve completed 3 out of 5 activities with 78% accuracy. Your memory scores are improving! 📈',
+        medicine: 'Your next medicine, Metformin 500mg, is scheduled at 2:00 PM. I\'ll remind you when it\'s time.',
+        activity: 'Your next activity is the Focus Challenge game. Would you like to start it now?',
+        appointment: 'Your next appointment is with Dr. Sharma on Monday at 11:00 AM at City Hospital.',
+        perform: 'Today you\'ve completed 3 out of 5 activities with 78% accuracy. Your memory scores are improving.',
       };
 
       const key = Object.keys(responses).find(k => msg.toLowerCase().includes(k));
-      const response = key ? responses[key] : 'I understand. Let me help you with that. You can ask me about your medicines, activities, appointments, or daily progress. 😊';
+      const response = key ? responses[key] : 'I understand. Let me help you with that. You can ask me about your medicines, activities, appointments, or daily progress.';
 
       setMessages(prev => [...prev, { role: 'assistant', text: response }]);
     }, 800);
@@ -92,8 +92,9 @@ export default function AIAssistant() {
                 width: 32, height: 32, borderRadius: '50%',
                 background: 'var(--gradient-neural)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '0.9rem',
-              }}>🧠</div>
+              }}>
+                <Brain size={16} color="white" />
+              </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>MindSathi</div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--success)' }}>● Online</div>
@@ -125,15 +126,15 @@ export default function AIAssistant() {
                         padding: '0.4rem 0.75rem',
                         borderRadius: 'var(--radius-full)',
                         border: '1px solid var(--glass-border)',
-                        background: 'rgba(255,255,255,0.03)',
+                        background: 'rgba(255,255,255,0.02)',
                         color: 'var(--text-accent)',
                         fontSize: '0.75rem',
                         cursor: 'pointer',
                         fontFamily: 'var(--font-body)',
                         transition: 'all 0.2s',
                       }}
-                      onMouseOver={(e) => e.target.style.background = 'rgba(99,102,241,0.15)'}
-                      onMouseOut={(e) => e.target.style.background = 'rgba(255,255,255,0.03)'}
+                      onMouseOver={(e) => e.target.style.background = 'rgba(124,58,237,0.1)'}
+                      onMouseOut={(e) => e.target.style.background = 'rgba(255,255,255,0.02)'}
                     >
                       {s}
                     </button>
@@ -147,7 +148,7 @@ export default function AIAssistant() {
               <button
                 className="btn btn-icon btn-ghost"
                 onClick={handleVoiceInput}
-                style={{ minWidth: 40, minHeight: 40, color: 'var(--accent-cyan)' }}
+                style={{ minWidth: 40, minHeight: 40, color: 'var(--accent-violet)' }}
                 aria-label="Voice input"
               >
                 <Mic size={20} />
@@ -160,7 +161,7 @@ export default function AIAssistant() {
                 placeholder="Type a message..."
                 style={{
                   flex: 1, padding: '0.6rem 0.75rem',
-                  background: 'rgba(255,255,255,0.04)',
+                  background: 'rgba(255,255,255,0.03)',
                   border: '1px solid var(--glass-border)',
                   borderRadius: 'var(--radius-lg)',
                   color: 'var(--text-primary)',

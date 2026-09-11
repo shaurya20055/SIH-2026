@@ -1,14 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Stethoscope, AlertTriangle, CheckCircle } from 'lucide-react';
 import { getDoctorDashboard } from '../api';
+import gsap from 'gsap';
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const listRef = useRef(null);
 
   useEffect(() => { loadData(); }, []);
+
+  useEffect(() => {
+    if (data && listRef.current) {
+      gsap.fromTo(listRef.current.querySelectorAll('.gsap-card'),
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out', delay: 0.1 }
+      );
+    }
+  }, [data]);
 
   const loadData = async () => {
     try {
@@ -31,7 +42,9 @@ export default function DoctorDashboard() {
   if (!data) {
     return (
       <div className="page-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} style={{ fontSize: '3rem' }}>🩺</motion.div>
+        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} style={{ color: 'var(--accent-cyan)' }}>
+          <Stethoscope size={48} />
+        </motion.div>
       </div>
     );
   }
@@ -45,7 +58,9 @@ export default function DoctorDashboard() {
         <button className="btn btn-ghost mb-2" onClick={() => navigate('/caregiver')}>
           <ArrowLeft size={16} /> Back
         </button>
-        <h1 className="page-title">🩺 Doctor Dashboard</h1>
+        <h1 className="page-title flex items-center gap-2">
+          <Stethoscope size={24} color="var(--accent-cyan)" /> Doctor Dashboard
+        </h1>
         <p className="page-subtitle">Overview of all patients under your care</p>
       </motion.div>
 
@@ -60,8 +75,9 @@ export default function DoctorDashboard() {
           <div className="stat-label">Avg Games/Week</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: data.alerts > 0 ? 'var(--danger)' : 'var(--success)' }}>
-            {data.alerts > 0 ? `⚠️ ${data.alerts}` : '✅ 0'}
+          <div className="stat-value flex items-center justify-center gap-1" style={{ color: data.alerts > 0 ? 'var(--danger)' : 'var(--success)' }}>
+            {data.alerts > 0 ? <AlertTriangle size={20} /> : <CheckCircle size={20} />}
+            {data.alerts > 0 ? data.alerts : '0'}
           </div>
           <div className="stat-label">Alerts</div>
         </div>
@@ -69,40 +85,38 @@ export default function DoctorDashboard() {
 
       {/* Patients */}
       <h2 className="mb-2">Patients</h2>
-      {data.patients?.map((patient, i) => (
-        <motion.div
-          key={patient.id}
-          className="glass-card mb-2"
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 + i * 0.05 }}
-          style={{ cursor: 'pointer' }}
-          whileHover={{ scale: 1.01 }}
-        >
-          <div className="flex items-center gap-3">
-            <div style={{
-              width: 48, height: 48, borderRadius: '50%',
-              background: 'var(--gradient-neural)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'white', fontWeight: 700, fontSize: '1.1rem',
-            }}>
-              {patient.name.charAt(0)}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{patient.name}</div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Age {patient.age} · Level {patient.level} · {patient.total_xp} XP
+      <div ref={listRef}>
+        {data.patients?.map((patient, i) => (
+          <div
+            key={patient.id}
+            className="glass-card mb-2 gsap-card"
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="flex items-center gap-3">
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%',
+                background: 'var(--gradient-neural)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontWeight: 700, fontSize: '1.1rem',
+              }}>
+                {patient.name.charAt(0)}
               </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <span className={`badge ${statusBadge[patient.status]}`}>{patient.status}</span>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                {patient.accuracy}% accuracy · {patient.games} games
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>{patient.name}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Age {patient.age} · Level {patient.level} · {patient.total_xp} XP
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span className={`badge ${statusBadge[patient.status]}`}>{patient.status}</span>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  {patient.accuracy}% accuracy · {patient.games} games
+                </div>
               </div>
             </div>
           </div>
-        </motion.div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

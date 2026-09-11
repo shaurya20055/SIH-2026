@@ -1,16 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Plus, Check, Clock } from 'lucide-react';
+import { Plus, Check, Clock, Bell, Pin, CheckCircle, Inbox, Pill, Droplets, Calendar, Activity } from 'lucide-react';
 import { getReminders, markReminderDone, createReminder } from '../api';
+import gsap from 'gsap';
 
 export default function RemindersPage({ patientId }) {
   const { t } = useTranslation();
   const [reminders, setReminders] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newReminder, setNewReminder] = useState({ label: '', reminder_type: 'medicine', scheduled_time: '08:00' });
+  const listRef = useRef(null);
 
   useEffect(() => { loadReminders(); }, []);
+
+  useEffect(() => {
+    if (listRef.current && reminders.length > 0) {
+      gsap.fromTo(listRef.current.querySelectorAll('.gsap-item'),
+        { opacity: 0, x: -15 },
+        { opacity: 1, x: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+      );
+    }
+  }, [reminders]);
 
   const loadReminders = async () => {
     try {
@@ -19,7 +30,7 @@ export default function RemindersPage({ patientId }) {
     } catch {
       setReminders([
         { id: 1, label: 'Morning Medicine', reminder_type: 'medicine', scheduled_time: '08:00', is_done: false },
-        { id: 2, label: 'Drink Water 💧', reminder_type: 'hydration', scheduled_time: '10:00', is_done: false },
+        { id: 2, label: 'Drink Water', reminder_type: 'hydration', scheduled_time: '10:00', is_done: false },
         { id: 3, label: 'Morning Walk', reminder_type: 'activity', scheduled_time: '07:00', is_done: true },
         { id: 4, label: 'Afternoon Medicine', reminder_type: 'medicine', scheduled_time: '14:00', is_done: false },
         { id: 5, label: 'Evening Walk', reminder_type: 'activity', scheduled_time: '18:00', is_done: false },
@@ -45,7 +56,16 @@ export default function RemindersPage({ patientId }) {
     loadReminders();
   };
 
-  const icons = { medicine: '💊', hydration: '💧', appointment: '🏥', activity: '🚶' };
+  const renderIcon = (type) => {
+    switch(type) {
+      case 'medicine': return <Pill size={18} />;
+      case 'hydration': return <Droplets size={18} color="var(--accent-cyan)" />;
+      case 'appointment': return <Calendar size={18} color="var(--accent-violet)" />;
+      case 'activity': return <Activity size={18} color="var(--success)" />;
+      default: return <Pin size={18} />;
+    }
+  };
+
   const pending = reminders.filter(r => !r.is_done);
   const done = reminders.filter(r => r.is_done);
 
@@ -53,7 +73,10 @@ export default function RemindersPage({ patientId }) {
     <div className="page-container">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="page-title">⏰ Reminders</h1>
+          <h1 className="page-title">
+            <span className="title-icon"><Bell size={22} /></span>
+            Reminders
+          </h1>
           <p className="page-subtitle">{pending.length} pending today</p>
         </div>
         <motion.button
@@ -79,10 +102,10 @@ export default function RemindersPage({ patientId }) {
             <select value={newReminder.reminder_type}
               onChange={(e) => setNewReminder({ ...newReminder, reminder_type: e.target.value })}
               style={{ flex: 1 }}>
-              <option value="medicine">💊 Medicine</option>
-              <option value="hydration">💧 Hydration</option>
-              <option value="appointment">🏥 Appointment</option>
-              <option value="activity">🚶 Activity</option>
+              <option value="medicine">Medicine</option>
+              <option value="hydration">Hydration</option>
+              <option value="appointment">Appointment</option>
+              <option value="activity">Activity</option>
             </select>
             <input type="time" value={newReminder.scheduled_time}
               onChange={(e) => setNewReminder({ ...newReminder, scheduled_time: e.target.value })}
@@ -94,60 +117,64 @@ export default function RemindersPage({ patientId }) {
         </motion.div>
       )}
 
-      {/* Pending */}
-      {pending.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-          <h3 className="mb-2" style={{ color: 'var(--text-secondary)' }}>📌 Pending ({pending.length})</h3>
-          {pending.map((r, i) => (
-            <motion.div
-              key={r.id}
-              className={`reminder-card ${r.reminder_type}`}
-              initial={{ opacity: 0, x: -15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 + i * 0.04 }}
-            >
-              <span className="reminder-icon">{icons[r.reminder_type] || '📌'}</span>
-              <div className="reminder-info">
-                <div className="reminder-label">{r.label}</div>
-                <div className="reminder-time flex items-center gap-1">
-                  <Clock size={12} /> {r.scheduled_time}
+      <div ref={listRef}>
+        {/* Pending */}
+        {pending.length > 0 && (
+          <div>
+            <h3 className="mb-2 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+              <Pin size={18} /> Pending ({pending.length})
+            </h3>
+            {pending.map((r, i) => (
+              <div key={r.id} className={`reminder-card gsap-item ${r.reminder_type}`}>
+                <span className="reminder-icon" style={{ display: 'flex' }}>
+                  {renderIcon(r.reminder_type)}
+                </span>
+                <div className="reminder-info">
+                  <div className="reminder-label">{r.label}</div>
+                  <div className="reminder-time flex items-center gap-1">
+                    <Clock size={12} /> {r.scheduled_time}
+                  </div>
                 </div>
+                <motion.button
+                  className="btn btn-success btn-sm"
+                  onClick={() => handleDone(r.id)}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Check size={14} /> Done
+                </motion.button>
               </div>
-              <motion.button
-                className="btn btn-success btn-sm"
-                onClick={() => handleDone(r.id)}
-                whileTap={{ scale: 0.9 }}
-              >
-                <Check size={14} /> Done
-              </motion.button>
-            </motion.div>
-          ))}
-        </motion.div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {/* Done */}
-      {done.length > 0 && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-          <h3 className="mb-2 mt-3" style={{ color: 'var(--text-muted)' }}>✅ Completed ({done.length})</h3>
-          {done.map(r => (
-            <div key={r.id} className={`reminder-card ${r.reminder_type} done`}>
-              <span className="reminder-icon">{icons[r.reminder_type] || '📌'}</span>
-              <div className="reminder-info">
-                <div className="reminder-label">{r.label}</div>
-                <div className="reminder-time">{r.scheduled_time}</div>
+        {/* Done */}
+        {done.length > 0 && (
+          <div>
+            <h3 className="mb-2 mt-4 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+              <CheckCircle size={18} /> Completed ({done.length})
+            </h3>
+            {done.map(r => (
+              <div key={r.id} className={`reminder-card gsap-item ${r.reminder_type} done`}>
+                <span className="reminder-icon" style={{ display: 'flex' }}>
+                  {renderIcon(r.reminder_type)}
+                </span>
+                <div className="reminder-info">
+                  <div className="reminder-label">{r.label}</div>
+                  <div className="reminder-time">{r.scheduled_time}</div>
+                </div>
+                <Check size={18} color="var(--success)" />
               </div>
-              <Check size={18} color="var(--success)" />
-            </div>
-          ))}
-        </motion.div>
-      )}
+            ))}
+          </div>
+        )}
 
-      {reminders.length === 0 && (
-        <div style={{ textAlign: 'center', marginTop: '3rem', opacity: 0.5 }}>
-          <div style={{ fontSize: '3rem' }}>📭</div>
-          <p style={{ color: 'var(--text-muted)' }}>No reminders yet</p>
-        </div>
-      )}
+        {reminders.length === 0 && (
+          <div style={{ textAlign: 'center', marginTop: '3rem', opacity: 0.5 }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}><Inbox size={48} /></div>
+            <p style={{ color: 'var(--text-muted)' }}>No reminders yet</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

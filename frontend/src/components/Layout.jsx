@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Home, Gamepad2, Heart, Pill, Calendar, BarChart3, Users, Bell, Globe, User } from 'lucide-react';
+import { Home, Gamepad2, Heart, Pill, Calendar, BarChart3, Users, Bell, Globe, User, Brain } from 'lucide-react';
 import AIAssistant from './AIAssistant';
 
 const NAV_ITEMS = [
@@ -30,7 +30,7 @@ export default function Layout({ patientId }) {
       {/* Desktop Top Navigation */}
       <nav className="top-nav">
         <NavLink to="/dashboard" className="nav-brand">
-          🧠 MindSathi
+          <Brain size={18} /> MindSathi
         </NavLink>
 
         {NAV_ITEMS.map((item) => (

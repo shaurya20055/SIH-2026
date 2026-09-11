@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { Calendar, Clock, MapPin, Phone, Bell, User } from 'lucide-react';
+import gsap from 'gsap';
+import { useEffect, useRef } from 'react';
 
 const APPOINTMENTS = [
   { id: 1, doctor: 'Dr. Sharma', specialty: 'Neurologist', date: 'Monday, Sep 15', time: '11:00 AM', location: 'City Hospital, Guwahati', purpose: 'Routine cognitive assessment', upcoming: true },
@@ -10,31 +12,38 @@ const APPOINTMENTS = [
 export default function Appointments({ patientId }) {
   const upcoming = APPOINTMENTS.filter(a => a.upcoming);
   const past = APPOINTMENTS.filter(a => !a.upcoming);
+  const pageRef = useRef(null);
+
+  useEffect(() => {
+    if (pageRef.current) {
+      gsap.fromTo(pageRef.current.querySelectorAll('.gsap-card'),
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out', delay: 0.1 }
+      );
+    }
+  }, []);
 
   return (
-    <div className="page-container">
+    <div className="page-container" ref={pageRef}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="page-header">
-        <h1 className="page-title">📅 Appointments</h1>
+        <h1 className="page-title">
+          <span className="title-icon"><Calendar size={22} /></span>
+          Appointments
+        </h1>
         <p className="page-subtitle">Stay on top of your healthcare visits</p>
       </motion.div>
 
       {/* Next Appointment - Featured */}
       {upcoming[0] && (
-        <motion.div
-          className="glass-card glow-indigo mb-3"
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          style={{ padding: '2rem' }}
-        >
+        <div className="glass-card glow-indigo mb-3 gsap-card" style={{ padding: '2rem' }}>
           <span className="badge badge-info mb-2" style={{ display: 'inline-flex' }}>Next Appointment</span>
           <div className="flex items-center gap-3 mb-3">
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+              background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <User size={24} color="var(--accent-indigo)" />
+              <User size={24} color="var(--accent-purple)" />
             </div>
             <div>
               <h2 style={{ fontSize: '1.3rem' }}>{upcoming[0].doctor}</h2>
@@ -61,37 +70,31 @@ export default function Appointments({ patientId }) {
             Purpose: {upcoming[0].purpose}
           </p>
 
-          <div className="flex gap-2">
-            <button className="btn btn-primary" style={{ flex: 1 }}>
-              <Bell size={16} /> Set Reminder
+          <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" style={{ flex: 1, minWidth: '140px' }}>
+              <Bell size={16} /> Reminder
             </button>
-            <button className="btn btn-secondary" style={{ flex: 1 }}>
-              <Calendar size={16} /> Add to Calendar
+            <button className="btn btn-secondary" style={{ flex: 1, minWidth: '140px' }}>
+              <Calendar size={16} /> Calendar
             </button>
-            <button className="btn btn-secondary">
-              <Phone size={16} /> Call Caregiver
+            <button className="btn btn-secondary" style={{ flex: 1, minWidth: '140px' }}>
+              <Phone size={16} /> Caregiver
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Other Upcoming */}
       {upcoming.length > 1 && (
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+        <div className="gsap-card">
           <h3 className="mb-2">Upcoming</h3>
           {upcoming.slice(1).map((apt, i) => (
-            <motion.div
-              key={apt.id}
-              className="glass-card mb-2"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 + i * 0.05 }}
-            >
+            <div key={apt.id} className="glass-card mb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div style={{
                     width: 44, height: 44, borderRadius: '50%',
-                    background: 'rgba(6,182,212,0.15)',
+                    background: 'rgba(34,211,238,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
                     <User size={18} color="var(--accent-cyan)" />
@@ -105,14 +108,14 @@ export default function Appointments({ patientId }) {
                 </div>
                 <span className="badge badge-info">{apt.specialty}</span>
               </div>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       )}
 
       {/* Past Appointments */}
       {past.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+        <div className="gsap-card">
           <h3 className="mb-2 mt-3" style={{ color: 'var(--text-muted)' }}>Past</h3>
           {past.map((apt) => (
             <div key={apt.id} className="glass-card mb-2" style={{ opacity: 0.5 }}>
@@ -133,7 +136,7 @@ export default function Appointments({ patientId }) {
               </div>
             </div>
           ))}
-        </motion.div>
+        </div>
       )}
     </div>
   );
