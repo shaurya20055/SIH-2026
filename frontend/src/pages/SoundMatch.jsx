@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Volume2 } from 'lucide-react';
 import { generateGame, saveSession } from '../api';
+import gsap from 'gsap';
 
 const SOUNDS = [
   { id: 1, label: 'Bird Chirping', emoji: '🐦', correct: 'Bird' },
@@ -32,6 +33,16 @@ export default function SoundMatch({ patientId }) {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [startTime] = useState(Date.now());
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      gsap.fromTo(contentRef.current.querySelectorAll('.gsap-item'),
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+      );
+    }
+  }, [idx]);
 
   const speak = (text) => {
     if ('speechSynthesis' in window) {
@@ -83,12 +94,12 @@ export default function SoundMatch({ patientId }) {
         </div>
       </motion.div>
 
-      <motion.div key={idx} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }}>
-        <h2 className="game-question">{QUESTIONS[idx].question}</h2>
+      <div key={idx} ref={contentRef}>
+        <h2 className="game-question gsap-item">{QUESTIONS[idx].question}</h2>
 
         {/* Sound Player */}
         <motion.div
-          className="glass-card"
+          className="glass-card gsap-item"
           style={{ textAlign: 'center', padding: '2rem', marginBottom: '1.5rem', cursor: 'pointer' }}
           onClick={playSound}
           whileHover={{ scale: 1.02 }}
@@ -108,19 +119,17 @@ export default function SoundMatch({ patientId }) {
         </motion.div>
 
         {QUESTIONS[idx].options.map((opt, i) => (
-          <motion.button
+          <button
             key={i}
-            className={`option-btn ${showResult ? (opt === QUESTIONS[idx].correct ? 'correct' : opt === selected ? 'wrong' : '') : ''}`}
+            className={`option-btn gsap-item ${showResult ? (opt === QUESTIONS[idx].correct ? 'correct' : opt === selected ? 'wrong' : '') : ''}`}
             onClick={() => !showResult && handleAnswer(opt)}
             disabled={showResult}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.05 }}
+            style={{ opacity: 0 }}
           >
             {opt}
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Brain } from 'lucide-react';
 import { generateGame, saveSession } from '../api';
+import gsap from 'gsap';
 
 const FALLBACK_PAIRS = [
   { id: 1, content: '🌺', label: 'Flower' },
@@ -30,15 +31,25 @@ export default function FlipCard({ patientId }) {
   const [moves, setMoves] = useState(0);
   const [startTime] = useState(Date.now());
   const lockRef = useRef(false);
+  const gridRef = useRef(null);
 
   useEffect(() => { loadGame(); }, []);
+
+  useEffect(() => {
+    if (gridRef.current && cards.length > 0) {
+      gsap.fromTo(gridRef.current.querySelectorAll('.flip-card'),
+        { opacity: 0, scale: 0.8 },
+        { opacity: 1, scale: 1, duration: 0.4, stagger: 0.05, ease: 'back.out(1.2)' }
+      );
+    }
+  }, [cards]);
 
   const loadGame = async () => {
     let pairs = FALLBACK_PAIRS;
     try {
       const res = await generateGame(patientId, 'flip_card');
       if (res.data?.pairs) pairs = res.data.pairs;
-    } catch {}
+    } catch { }
 
     const numPairs = Math.min(pairs.length, 6);
     const selected = pairs.slice(0, numPairs);
@@ -72,8 +83,10 @@ export default function FlipCard({ patientId }) {
             const accuracy = Math.round((cards.length / 2 / (moves + 1)) * 100);
             try {
               saveSession({ patient: patientId, game_type: 'flip_card', score: accuracy, accuracy: Math.min(accuracy, 100), duration_seconds: elapsed, cognitive_level: 1 });
-            } catch {}
-            navigate('/game-complete', { state: { score: Math.min(accuracy, 100), xp: 30, game: 'Memory Match', correct: cards.length / 2, total: cards.length / 2 } });
+            } catch { }
+            setTimeout(() => {
+              navigate('/game-complete', { state: { score: Math.min(accuracy, 100), xp: 30, game: 'Memory Match', correct: cards.length / 2, total: cards.length / 2 } });
+            }, 600);
           }
 
           if ('speechSynthesis' in window) {
@@ -117,25 +130,87 @@ export default function FlipCard({ patientId }) {
 
       <h2 className="game-question">Find the matching pairs</h2>
 
-      <div className={`flip-grid ${gridClass}`}>
+      <div className={`flip-grid ${gridClass}`} ref={gridRef}>
         {cards.map((card) => {
           const isFlipped = flipped.includes(card.uid) || matched.includes(card.uid);
           const isMatched = matched.includes(card.uid);
+
+          // Check if the content is a URL so we can render an image tag instead of text
+          const isImage = typeof card.content === 'string' && card.content.startsWith('http');
+
           return (
-            <motion.div
+            <div
               key={card.uid}
-              className={`flip-card ${isFlipped ? 'flipped' : ''} ${isMatched ? 'matched' : ''}`}
+              className={`flip-card ${isMatched ? 'matched' : ''}`}
               onClick={() => handleFlip(card.uid)}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: Math.random() * 0.3 }}
-              whileTap={{ scale: 0.95 }}
+              style={{
+                opacity: 0,
+                perspective: '1000px',
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                border: 'none',
+              }}
             >
-              <div className="flip-card-front">🧠</div>
-              <div className="flip-card-back">
-                <span style={{ fontSize: '2rem' }}>{card.content}</span>
-              </div>
-            </motion.div>
+              <motion.div
+                initial={false}
+                animate={{ rotateY: isFlipped ? 180 : 0 }}
+                transition={{ duration: 0.5, type: "tween", ease: "easeInOut" }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  position: 'relative',
+                  transformStyle: 'preserve-3d'
+                }}
+              >
+                {/* FRONT OF CARD */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'var(--primary, #8b5cf6)',
+                    borderRadius: '12px'
+                  }}
+                >
+                  <Brain size={32} color="rgba(255,255,255,0.7)" />
+                </div>
+
+                {/* BACK OF CARD */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                    backfaceVisibility: 'hidden',
+                    WebkitBackfaceVisibility: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isMatched ? '#f3f4f6' : '#ffffff',
+                    borderRadius: '12px',
+                    transform: 'rotateY(180deg)',
+                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
+                    overflow: 'hidden' // Ensures images don't break the rounded corners
+                  }}
+                >
+                  {isImage ? (
+                    <img
+                      src={card.content}
+                      alt="Memory card"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      draggable={false} // Prevents users from accidentally dragging the image while clicking
+                    />
+                  ) : (
+                    <span style={{ fontSize: '2.5rem' }}>{card.content}</span>
+                  )}
+                </div>
+              </motion.div>
+            </div>
           );
         })}
       </div>

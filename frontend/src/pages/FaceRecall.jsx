@@ -1,15 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Volume2 } from 'lucide-react';
+import { ArrowLeft, Volume2, Brain } from 'lucide-react';
 import { generateGame, saveSession } from '../api';
+import gsap from 'gsap';
 
 const FALLBACK_QUESTIONS = [
-  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=3', options: ['Son', 'Nephew', 'Friend', 'Doctor'], correct: 0 },
-  { question: 'What is this object?', image: 'https://i.pravatar.cc/400?img=12', options: ['Cup', 'Bowl', 'Plate', 'Glass'], correct: 0 },
-  { question: 'Where is this place?', image: 'https://picsum.photos/seed/temple/400', options: ['Temple', 'Market', 'Hospital', 'School'], correct: 0 },
-  { question: 'Who is this?', image: 'https://i.pravatar.cc/400?img=5', options: ['Daughter', 'Neighbor', 'Sister', 'Cousin'], correct: 0 },
-  { question: 'What do you see?', image: 'https://picsum.photos/seed/garden/400', options: ['Garden', 'Kitchen', 'Road', 'River'], correct: 0 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=1', options: ['Daughter', 'Niece', 'Caregiver', 'Friend'], correct: 0 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=11', options: ['Son', 'Doctor', 'Neighbor', 'Nephew'], correct: 1 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=16', options: ['Sister', 'Wife', 'Friend', 'Neighbor'], correct: 2 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=33', options: ['Grandson', 'Son', 'Brother', 'Doctor'], correct: 0 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=47', options: ['Caregiver', 'Daughter', 'Friend', 'Niece'], correct: 0 },
 ];
 
 export default function FaceRecall({ patientId }) {
@@ -20,8 +21,18 @@ export default function FaceRecall({ patientId }) {
   const [showResult, setShowResult] = useState(false);
   const [score, setScore] = useState(0);
   const [startTime] = useState(Date.now());
+  const contentRef = useRef(null);
 
   useEffect(() => { loadGame(); }, []);
+
+  useEffect(() => {
+    if (questions.length > 0 && contentRef.current) {
+      gsap.fromTo(contentRef.current.querySelectorAll('.gsap-item'),
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+      );
+    }
+  }, [idx, questions]);
 
   const loadGame = async () => {
     try {
@@ -72,7 +83,9 @@ export default function FaceRecall({ patientId }) {
   if (questions.length === 0) {
     return (
       <div className="game-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} style={{ fontSize: '3rem' }}>🧠</motion.div>
+        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ repeat: Infinity, duration: 2 }} style={{ color: 'var(--accent-cyan)' }}>
+          <Brain size={48} />
+        </motion.div>
       </div>
     );
   }
@@ -100,36 +113,29 @@ export default function FaceRecall({ patientId }) {
       </motion.div>
 
       {/* Question */}
-      <motion.div
-        key={idx}
-        initial={{ opacity: 0, x: 30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <h2 className="game-question">{q.question}</h2>
+      <div key={idx} ref={contentRef}>
+        <h2 className="game-question gsap-item">{q.question}</h2>
 
-        <img
-          src={q.image}
-          alt="Question"
-          className="game-image"
-          onError={(e) => { e.target.src = `https://picsum.photos/seed/q${idx}/400`; }}
-        />
+        <div className="gsap-item" style={{ display: 'flex', justifyContent: 'center' }}>
+          <img
+            src={q.image}
+            alt="Question"
+            className="game-image"
+            onError={(e) => { e.target.src = `https://picsum.photos/seed/q${idx}/400`; }}
+          />
+        </div>
 
         {q.options.map((opt, i) => (
-          <motion.button
+          <button
             key={i}
-            className={`option-btn ${showResult ? (i === q.correct ? 'correct' : i === selected ? 'wrong' : '') : ''}`}
+            className={`option-btn gsap-item ${showResult ? (i === q.correct ? 'correct' : i === selected ? 'wrong' : '') : ''}`}
             onClick={() => !showResult && handleAnswer(i)}
             disabled={showResult}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.05 }}
-            whileHover={!showResult ? { scale: 1.01 } : {}}
           >
             {opt}
-          </motion.button>
+          </button>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 }

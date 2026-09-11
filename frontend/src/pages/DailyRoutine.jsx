@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Check } from 'lucide-react';
+import { ArrowLeft, Check, PartyPopper, ThumbsUp } from 'lucide-react';
 import { saveSession } from '../api';
+import gsap from 'gsap';
 
 const ROUTINE_ITEMS = [
   { id: 1, icon: '🌅', label: 'Wake up' },
@@ -29,6 +30,16 @@ export default function DailyRoutine({ patientId }) {
   const [result, setResult] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
   const [startTime] = useState(Date.now());
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    if (listRef.current && !checked) {
+      gsap.fromTo(listRef.current.querySelectorAll('.routine-item'),
+        { opacity: 0, x: -15 },
+        { opacity: 1, x: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+      );
+    }
+  }, [checked]);
 
   const handleDragStart = (idx) => setDragIdx(idx);
 
@@ -79,22 +90,19 @@ export default function DailyRoutine({ patientId }) {
         Drag items to rearrange them
       </p>
 
-      <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+      <div style={{ maxWidth: '500px', margin: '0 auto' }} ref={listRef}>
         {items.map((item, i) => {
           const isCorrect = checked && item.id === ROUTINE_ITEMS[i].id;
           const isWrong = checked && item.id !== ROUTINE_ITEMS[i].id;
 
           return (
-            <motion.div
+            <div
               key={item.id}
               className="routine-item"
               draggable
               onDragStart={() => handleDragStart(i)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => handleDrop(i)}
-              initial={{ opacity: 0, x: -15 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
               style={{
                 borderColor: isCorrect ? 'var(--success)' : isWrong ? 'var(--danger)' : undefined,
                 background: isCorrect ? 'var(--success-bg)' : isWrong ? 'var(--danger-bg)' : undefined,
@@ -104,7 +112,7 @@ export default function DailyRoutine({ patientId }) {
               <span className="routine-icon">{item.icon}</span>
               <span style={{ flex: 1, fontWeight: 500 }}>{item.label}</span>
               {isCorrect && <Check size={18} color="var(--success)" />}
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -125,8 +133,8 @@ export default function DailyRoutine({ patientId }) {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>
-            {result.accuracy >= 80 ? '🎉' : '💪'}
+          <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', color: 'var(--accent-purple)' }}>
+            {result.accuracy >= 80 ? <PartyPopper size={48} /> : <ThumbsUp size={48} />}
           </div>
           <h3 style={{ marginBottom: '0.5rem' }}>
             {result.correct} / {result.total} correct

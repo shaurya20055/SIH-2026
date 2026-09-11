@@ -4,12 +4,12 @@ import { Users, Mic, Cake, PartyPopper, MessageCircle, Info } from 'lucide-react
 import gsap from 'gsap';
 
 const FAMILY_MEMBERS = [
-  { id: 1, name: 'Priya', relation: 'Granddaughter', photo: 'https://i.pravatar.cc/200?img=1' },
-  { id: 2, name: 'Rahul', relation: 'Son', photo: 'https://i.pravatar.cc/200?img=3' },
-  { id: 3, name: 'Meena', relation: 'Daughter', photo: 'https://i.pravatar.cc/200?img=5' },
-  { id: 4, name: 'Arjun', relation: 'Grandson', photo: 'https://i.pravatar.cc/200?img=7' },
-  { id: 5, name: 'Lakshmi', relation: 'Sister', photo: 'https://i.pravatar.cc/200?img=9' },
-  { id: 6, name: 'Bimal', relation: 'Friend', photo: 'https://i.pravatar.cc/200?img=11' },
+  { id: 1, name: 'Priya', relation: 'Granddaughter', photo: 'https://i.pravatar.cc/200?img=42' },
+  { id: 2, name: 'Rahul', relation: 'Son', photo: 'https://i.pravatar.cc/200?img=33' },
+  { id: 3, name: 'Meena', relation: 'Daughter', photo: 'https://i.pravatar.cc/200?img=20' },
+  { id: 4, name: 'Arjun', relation: 'Grandson', photo: 'https://i.pravatar.cc/200?img=14' },
+  { id: 5, name: 'Lakshmi', relation: 'Sister', photo: 'https://i.pravatar.cc/200?img=44' },
+  { id: 6, name: 'Bimal', relation: 'Friend', photo: 'https://i.pravatar.cc/200?img=54' },
 ];
 
 const BIRTHDAYS = [
