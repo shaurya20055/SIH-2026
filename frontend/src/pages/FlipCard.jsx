@@ -6,12 +6,12 @@ import { generateGame, saveSession } from '../api';
 import gsap from 'gsap';
 
 const FALLBACK_PAIRS = [
-  { id: 1, content: '🌺', label: 'Flower' },
-  { id: 2, content: '🍎', label: 'Apple' },
-  { id: 3, content: '🏠', label: 'House' },
-  { id: 4, content: '☀️', label: 'Sun' },
-  { id: 5, content: '🐦', label: 'Bird' },
-  { id: 6, content: '🌈', label: 'Rainbow' },
+  { id: 1, content: 'https://res-console.cloudinary.com/diqkoqmwh/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/aG9ybmJpbGxfcWRtcm1y/template_primary', label: 'Hornbill Festival' },
+  { id: 2, content: 'https://res-console.cloudinary.com/diqkoqmwh/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/b25lX2hvcm5lZF9yaGlub193dXh5eTE=/template_primary', label: 'One Horned Rhino' },
+  { id: 3, content: 'https://res-console.cloudinary.com/diqkoqmwh/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/dGVhX2dhcmRlbl9zd2FnY3Y=/template_primary', label: 'Tea Garden' },
+  { id: 4, content: 'https://res-console.cloudinary.com/diqkoqmwh/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/cGl0aGFfa3RicDR6/template_primary', label: 'Pitha' },
+  { id: 5, content: 'https://res-console.cloudinary.com/diqkoqmwh/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/bmF0aW9uYWxfcGFya19sYWV4ZXU=/template_primary', label: 'Kaziranga' },
+  { id: 6, content: 'https://res-console.cloudinary.com/diqkoqmwh/thumbnails/transform/v1/image/upload/Y19maWxsLGhfMjAwLHdfMjAw/v1/aW1hZ2VzX2hsdGpyOA==/template_primary', label: 'Tawang' },
 ];
 
 function shuffleArray(arr) {
@@ -47,8 +47,12 @@ export default function FlipCard({ patientId }) {
   const loadGame = async () => {
     let pairs = FALLBACK_PAIRS;
     try {
+      // We still call the API so your backend registers the game start
       const res = await generateGame(patientId, 'flip_card');
-      if (res.data?.pairs) pairs = res.data.pairs;
+
+      // I HAVE COMMENTED THIS OUT: 
+      // This is what was overriding your Cloudinary images with "Majuli Island" text.
+      // if (res.data?.pairs) pairs = res.data.pairs; 
     } catch { }
 
     const numPairs = Math.min(pairs.length, 6);
@@ -135,7 +139,6 @@ export default function FlipCard({ patientId }) {
           const isFlipped = flipped.includes(card.uid) || matched.includes(card.uid);
           const isMatched = matched.includes(card.uid);
 
-          // Check if the content is a URL so we can render an image tag instead of text
           const isImage = typeof card.content === 'string' && card.content.startsWith('http');
 
           return (
@@ -195,16 +198,39 @@ export default function FlipCard({ patientId }) {
                     borderRadius: '12px',
                     transform: 'rotateY(180deg)',
                     boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)',
-                    overflow: 'hidden' // Ensures images don't break the rounded corners
+                    overflow: 'hidden'
                   }}
                 >
                   {isImage ? (
-                    <img
-                      src={card.content}
-                      alt="Memory card"
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      draggable={false} // Prevents users from accidentally dragging the image while clicking
-                    />
+                    <>
+                      <img
+                        src={card.content}
+                        alt={card.label}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        draggable={false}
+                        onError={(e) => {
+                          // Failsafe: Shows text if the image fails to load
+                          e.target.style.display = 'none';
+                          if (e.target.nextElementSibling) {
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }
+                        }}
+                      />
+                      <div style={{
+                        display: 'none',
+                        width: '100%',
+                        height: '100%',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#f3f4f6',
+                        padding: '8px',
+                        textAlign: 'center'
+                      }}>
+                        <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#111827' }}>
+                          {card.label}
+                        </span>
+                      </div>
+                    </>
                   ) : (
                     <span style={{ fontSize: '2.5rem' }}>{card.content}</span>
                   )}

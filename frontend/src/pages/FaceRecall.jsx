@@ -6,8 +6,8 @@ import { generateGame, saveSession } from '../api';
 import gsap from 'gsap';
 
 const FALLBACK_QUESTIONS = [
-  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=1', options: ['Daughter', 'Niece', 'Caregiver', 'Friend'], correct: 0 },
-  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=11', options: ['Son', 'Doctor', 'Neighbor', 'Nephew'], correct: 1 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/200?img=20', options: ['Daughter', 'Niece', 'Caregiver', 'Friend'], correct: 0 },
+  { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=12', options: ['Son', 'Doctor', 'Neighbor', 'Nephew'], correct: 1 },
   { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=16', options: ['Sister', 'Wife', 'Friend', 'Neighbor'], correct: 2 },
   { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=33', options: ['Grandson', 'Son', 'Brother', 'Doctor'], correct: 0 },
   { question: 'Who is this person?', image: 'https://i.pravatar.cc/400?img=47', options: ['Caregiver', 'Daughter', 'Friend', 'Niece'], correct: 0 },
@@ -66,7 +66,7 @@ export default function FaceRecall({ patientId }) {
         const accuracy = Math.round((score + (correct ? 1 : 0)) / questions.length * 100);
         try {
           saveSession({ patient: patientId, game_type: 'face_recall', score: accuracy, accuracy, duration_seconds: elapsed, cognitive_level: 1 });
-        } catch {}
+        } catch { }
         navigate('/game-complete', { state: { score: accuracy, xp: 25, game: 'Face Recall', correct: score + (correct ? 1 : 0), total: questions.length } });
       }
     }, 1500);

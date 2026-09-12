@@ -5,12 +5,13 @@ import { ArrowLeft, Volume2 } from 'lucide-react';
 import { generateGame, saveSession } from '../api';
 import gsap from 'gsap';
 
+// ADDED: 'audio' property pointing to files in your public folder
 const SOUNDS = [
-  { id: 1, label: 'Bird Chirping', emoji: '🐦', correct: 'Bird' },
-  { id: 2, label: 'Temple Bell', emoji: '🛕', correct: 'Bell' },
-  { id: 3, label: 'Rain', emoji: '🌧️', correct: 'Rain' },
-  { id: 4, label: 'Dog Barking', emoji: '🐕', correct: 'Dog' },
-  { id: 5, label: 'Whistle', emoji: '🎵', correct: 'Whistle' },
+  { id: 1, label: 'Bird Chirping', emoji: '🐦', correct: 'Bird', audio: '/sounds/bird.mp3' },
+  { id: 2, label: 'Temple Bell', emoji: '🛕', correct: 'Bell', audio: '/sounds/bell.mp3' },
+  { id: 3, label: 'Rain', emoji: '🌧️', correct: 'Rain', audio: '/sounds/rain.mp3' },
+  { id: 4, label: 'Dog Barking', emoji: '🐕', correct: 'Dog', audio: '/sounds/dog.mp3' },
+  { id: 5, label: 'Whistle', emoji: '🎵', correct: 'Whistle', audio: '/sounds/whistle.mp3' },
 ];
 
 const QUESTIONS = SOUNDS.map(s => ({
@@ -35,6 +36,9 @@ export default function SoundMatch({ patientId }) {
   const [startTime] = useState(Date.now());
   const contentRef = useRef(null);
 
+  // ADDED: Ref to keep track of the currently playing audio
+  const audioRef = useRef(null);
+
   useEffect(() => {
     if (contentRef.current) {
       gsap.fromTo(contentRef.current.querySelectorAll('.gsap-item'),
@@ -42,18 +46,30 @@ export default function SoundMatch({ patientId }) {
         { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
       );
     }
+
+    // Stop any playing audio when the component unmounts or question changes
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, [idx]);
 
-  const speak = (text) => {
-    if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.8;
-      window.speechSynthesis.speak(u);
-    }
-  };
-
+  // REPLACED: speak() function with actual audio player
   const playSound = () => {
-    speak(`This is the sound of ${QUESTIONS[idx].label}`);
+    // Stop currently playing sound if user taps repeatedly
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    const newAudio = new Audio(QUESTIONS[idx].audio);
+    audioRef.current = newAudio;
+
+    newAudio.play().catch(err => {
+      console.error("Audio playback failed. Please ensure the audio file exists at the correct path.", err);
+    });
   };
 
   const handleAnswer = (opt) => {
@@ -62,7 +78,9 @@ export default function SoundMatch({ patientId }) {
     if (correct) setScore(s => s + 1);
     setShowResult(true);
 
-    speak(correct ? 'Correct!' : `The answer is ${QUESTIONS[idx].correct}`);
+    // Optional: Stop the sound as soon as they guess, or let it finish playing.
+    // Uncomment the next two lines if you want it to stop immediately upon guessing.
+    // if (audioRef.current) audioRef.current.pause();
 
     setTimeout(() => {
       if (idx + 1 < QUESTIONS.length) {
@@ -74,7 +92,7 @@ export default function SoundMatch({ patientId }) {
         const accuracy = Math.round((score + (correct ? 1 : 0)) / QUESTIONS.length * 100);
         try {
           saveSession({ patient: patientId, game_type: 'sound_match', score: accuracy, accuracy, duration_seconds: elapsed, cognitive_level: 1 });
-        } catch {}
+        } catch { }
         navigate('/game-complete', { state: { score: accuracy, xp: 25, game: 'Sound Match', correct: score + (correct ? 1 : 0), total: QUESTIONS.length } });
       }
     }, 1500);
