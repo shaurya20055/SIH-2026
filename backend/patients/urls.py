@@ -8,6 +8,7 @@ router.register(r'memory', views.MemoryItemViewSet)
 router.register(r'mood', views.MoodLogViewSet)
 router.register(r'greetings', views.SocialGreetingViewSet)
 router.register(r'prescriptions', views.PrescriptionViewSet)
+router.register(r'users', views.UserViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

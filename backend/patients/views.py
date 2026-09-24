@@ -10,6 +10,18 @@ from .serializers import (
 )
 
 
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = User.objects.all()
+        role = self.request.query_params.get('role')
+        if role:
+            qs = qs.filter(profile__role=role)
+        return qs
+
 @api_view(['POST'])
 def register_user(request):
     """Register a new user with a role."""

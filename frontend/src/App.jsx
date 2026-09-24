@@ -2,8 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
-import HeroLanding from './pages/HeroLanding';
-import Onboarding from './pages/Onboarding';
+// Patient-side
 import PatientHome from './pages/PatientHome';
 import GamesHub from './pages/GamesHub';
 import FaceRecall from './pages/FaceRecall';
@@ -12,8 +11,6 @@ import DailyRoutine from './pages/DailyRoutine';
 import SoundMatch from './pages/SoundMatch';
 import MoodCheckin from './pages/MoodCheckin';
 import RemindersPage from './pages/RemindersPage';
-import CaregiverDashboard from './pages/CaregiverDashboard';
-import DoctorDashboard from './pages/DoctorDashboard';
 import GameComplete from './pages/GameComplete';
 import DailyCare from './pages/DailyCare';
 import Medicines from './pages/Medicines';
@@ -21,6 +18,18 @@ import Appointments from './pages/Appointments';
 import Progress from './pages/Progress';
 import Connect from './pages/Connect';
 import Layout from './components/Layout';
+import Onboarding from './pages/Onboarding';
+
+// Staff portal — Homepage + Login pages
+import StaffHomepage from './pages/StaffHomepage';
+import AdminLogin from './pages/AdminLogin';
+import CaretakerLogin from './pages/CaretakerLogin';
+import DoctorLogin from './pages/DoctorLogin';
+
+// Staff Dashboards
+import AdminDashboard from './pages/AdminDashboard';
+import CaretakerDashboard from './pages/CaretakerDashboard';
+import DoctorDashboard from './pages/DoctorDashboard';
 
 function App() {
   const [patientId, setPatientId] = useState(
@@ -29,44 +38,50 @@ function App() {
   const [isOnboarded, setIsOnboarded] = useState(
     localStorage.getItem('mm_onboarded') === 'true'
   );
-  const [showHero, setShowHero] = useState(!isOnboarded);
 
   const handleOnboarded = (pid) => {
     setPatientId(pid);
     setIsOnboarded(true);
-    setShowHero(false);
     localStorage.setItem('mm_patient_id', pid);
     localStorage.setItem('mm_onboarded', 'true');
   };
 
-  // First-time users see the Hero Landing
-  if (showHero && !isOnboarded) {
+  // Staff portal routes are always accessible
+  const staffRoutes = (
+    <>
+      <Route path="/staff" element={<StaffHomepage />} />
+      <Route path="/admin-login" element={<AdminLogin />} />
+      <Route path="/caretaker-login" element={<CaretakerLogin />} />
+      <Route path="/doctor-login" element={<DoctorLogin />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/caretaker-dashboard" element={<CaretakerDashboard />} />
+      <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
+      {/* Legacy paths */}
+      <Route path="/doctor" element={<DoctorDashboard />} />
+    </>
+  );
+
+  // Patient not yet onboarded → show onboarding, but staff portal still accessible
+  if (!isOnboarded) {
     return (
       <Routes>
-        <Route
-          path="*"
-          element={
-            <HeroLanding
-              onStart={() => {
-                setShowHero(false);
-              }}
-            />
-          }
-        />
+        {staffRoutes}
+        {/* "/" and everything else goes to staff homepage first, then onboarding */}
+        <Route path="/onboard" element={<Onboarding onComplete={handleOnboarded} />} />
+        <Route path="/" element={<StaffHomepage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
-  }
-
-  // After hero, show onboarding if not yet onboarded
-  if (!isOnboarded) {
-    return <Onboarding onComplete={handleOnboarded} />;
   }
 
   return (
     <AnimatePresence mode="wait">
       <Routes>
+        {/* ── Staff portal routes ── */}
+        {staffRoutes}
+
+        {/* ── Patient portal (inside Layout nav) ── */}
         <Route element={<Layout patientId={patientId} />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<PatientHome patientId={patientId} />} />
           <Route path="/games" element={<GamesHub patientId={patientId} />} />
           <Route path="/daily-care" element={<DailyCare patientId={patientId} />} />
@@ -76,15 +91,19 @@ function App() {
           <Route path="/connect" element={<Connect patientId={patientId} />} />
           <Route path="/reminders" element={<RemindersPage patientId={patientId} />} />
           <Route path="/mood" element={<MoodCheckin patientId={patientId} />} />
+          <Route path="/caregiver" element={<CaretakerDashboard />} />
         </Route>
+
+        {/* ── Game routes (full-screen) ── */}
         <Route path="/game/face-recall" element={<FaceRecall patientId={patientId} />} />
         <Route path="/game/flip-card" element={<FlipCard patientId={patientId} />} />
         <Route path="/game/daily-routine" element={<DailyRoutine patientId={patientId} />} />
         <Route path="/game/sound-match" element={<SoundMatch patientId={patientId} />} />
         <Route path="/game-complete" element={<GameComplete patientId={patientId} />} />
-        <Route path="/caregiver" element={<CaregiverDashboard patientId={patientId} />} />
-        <Route path="/doctor" element={<DoctorDashboard />} />
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+
+        {/* "/" → staff homepage; /dashboard → patient home */}
+        <Route path="/" element={<StaffHomepage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );
