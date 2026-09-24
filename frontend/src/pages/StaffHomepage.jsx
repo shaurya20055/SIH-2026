@@ -83,13 +83,34 @@ export default function StaffHomepage() {
     const handleMouseMove = (e) => setMousePos({ x: e.clientX, y: e.clientY });
     window.addEventListener('mousemove', handleMouseMove);
 
+    // Brain stays pinned while the hero is in view, then fades out before the next section
+    const brainEl = document.querySelector('.hp-hero-model');
+    const handleBrainScroll = () => {
+      const inner = brainEl && brainEl.firstElementChild;
+      if (!inner) return;
+      if (window.innerWidth <= 900) {           // mobile layout: brain scrolls normally, no fade
+        inner.style.opacity = '1';
+        brainEl.style.pointerEvents = 'auto';
+        return;
+      }
+      const vh = window.innerHeight;
+      const t = Math.min(1, Math.max(0, (window.scrollY - vh * 0.15) / (vh * 0.35)));
+      inner.style.opacity = String(1 - t);      // 1 → 0 between 15% and 50% of a screen scrolled
+      brainEl.style.pointerEvents = t >= 1 ? 'none' : 'auto';
+    };
+    handleBrainScroll();
+    window.addEventListener('scroll', handleBrainScroll, { passive: true });
+    window.addEventListener('resize', handleBrainScroll);
+
     // Hero animations
     const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
     heroTl
       .fromTo('.hp-hero-line', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.9, stagger: 0.15 }, '+=0.2')
       .fromTo('.hp-hero-sub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
       .fromTo('.hp-hero-cta', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.4')
-      .fromTo('.hp-hero-model', { opacity: 0, scale: 0.9, x: 30 }, { opacity: 1, scale: 1, x: 0, duration: 1 }, '-=0.8')
+      // NOTE: no `scale` here. A scale transform on the 3D container makes the canvas measure the
+      // wrong size (0.9x on load, 1.15x after the first scroll), which caused the size jump and clipping.
+      .fromTo('.hp-hero-model', { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 1 }, '-=0.8')
       .fromTo('.hp-hero-scroll', { opacity: 0 }, { opacity: 1, duration: 0.6 }, '-=0.2');
 
     gsap.to('.hp-hero-scroll', { y: 12, repeat: -1, yoyo: true, duration: 1.2, ease: 'power1.inOut' });
@@ -105,22 +126,18 @@ export default function StaffHomepage() {
       onUpdate: (self) => {
         const p = self.progress;
         let r, g, b;
-        if (p < 0.2) {
-          const t = p / 0.2;
-          r = lerp(6, 20, t); g = lerp(6, 8, t); b = lerp(14, 28, t);
-        } else if (p < 0.4) {
-          const t = (p - 0.2) / 0.2;
-          r = lerp(20, 120, t); g = lerp(8, 40, t); b = lerp(28, 180, t);
-        } else if (p < 0.55) {
-          const t = (p - 0.4) / 0.15;
-          r = lerp(120, 245, t); g = lerp(40, 235, t); b = lerp(180, 255, t);
-        } else if (p < 0.7) {
-          const t = (p - 0.55) / 0.15;
-          r = lerp(245, 80, t); g = lerp(235, 20, t); b = lerp(255, 140, t);
+
+        if (p < 0.25) {
+          // 1/4 deep dark purple
+          r = 10; g = 3; b = 25;
+        } else if (p < 0.625) {
+          // white reduced from bottom by 1/8
+          r = 255; g = 255; b = 255;
         } else {
-          const t = (p - 0.7) / 0.3;
-          r = lerp(80, 6, t); g = lerp(20, 6, t); b = lerp(140, 14, t);
+          // 1/4 deep dark purple
+          r = 10; g = 3; b = 25;
         }
+
         if (bgRef.current) bgRef.current.style.background = `rgb(${r},${g},${b})`;
       },
     });
@@ -138,8 +155,10 @@ export default function StaffHomepage() {
     document.querySelectorAll('.hp-role-card').forEach((card, i) => {
       gsap.fromTo(card,
         { opacity: 0, x: i % 2 === 0 ? -80 : 80 },
-        { opacity: 1, x: 0, duration: 0.8, ease: 'power3.out',
-          scrollTrigger: { trigger: card, start: 'top 80%', once: true } }
+        {
+          opacity: 1, x: 0, duration: 0.8, ease: 'power3.out',
+          scrollTrigger: { trigger: card, start: 'top 80%', once: true }
+        }
       );
     });
 
@@ -163,6 +182,8 @@ export default function StaffHomepage() {
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleBrainScroll);
+      window.removeEventListener('resize', handleBrainScroll);
       ScrollTrigger.getAll().forEach(t => t.kill());
     };
   }, []);
@@ -188,7 +209,6 @@ export default function StaffHomepage() {
             <Brain size={20} color="white" />
           </div>
           <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.2rem', color: '#f0f0f5', letterSpacing: '-0.02em' }}>MindSathi</span>
-          <span style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '999px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Staff Portal</span>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {VISIBLE_ROLES.map(r => (
@@ -197,8 +217,8 @@ export default function StaffHomepage() {
               background: 'rgba(255,255,255,0.04)', color: '#8b8ba3', fontSize: '0.8rem', cursor: 'pointer',
               fontFamily: 'Inter, sans-serif', transition: 'all 0.2s',
             }}
-            onMouseEnter={e => { e.target.style.background = 'rgba(124,58,237,0.2)'; e.target.style.color = '#a78bfa'; }}
-            onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.04)'; e.target.style.color = '#8b8ba3'; }}
+              onMouseEnter={e => { e.target.style.background = 'rgba(124,58,237,0.2)'; e.target.style.color = '#a78bfa'; }}
+              onMouseLeave={e => { e.target.style.background = 'rgba(255,255,255,0.04)'; e.target.style.color = '#8b8ba3'; }}
             >{r.title}</button>
           ))}
           <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.1)', margin: '0 0.25rem' }} />
@@ -207,34 +227,20 @@ export default function StaffHomepage() {
             background: 'rgba(16,185,129,0.08)', color: '#34d399', fontSize: '0.8rem', cursor: 'pointer',
             fontFamily: 'Inter, sans-serif', fontWeight: 600, transition: 'all 0.2s',
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.18)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.08)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.3)'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.18)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.5)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(16,185,129,0.08)'; e.currentTarget.style.borderColor = 'rgba(16,185,129,0.3)'; }}
           >Patient Login</button>
         </div>
       </nav>
 
       {/* ─── HERO ─── */}
       <section style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', padding: '6rem 2rem 4rem' }}>
-        {/* CursorGrid behind hero */}
-        <CursorGrid
-          cellSize={70}
-          color="#D946EF"
-          radius={140}
-          falloff="smooth"
-          holdTime={400}
-          fadeDuration={800}
-          lineWidth={1}
-          maxOpacity={0.4}
-          fillOpacity={0}
-          gridOpacity={0}
-          clickPulse
-          pulseSpeed={600}
-        />
+
         <div className="hp-orb-1" style={{ position: 'absolute', top: '10%', right: '15%', width: 400, height: 400, borderRadius: '50%', background: 'radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="hp-orb-2" style={{ position: 'absolute', bottom: '15%', left: '10%', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div className="hp-orb-3" style={{ position: 'absolute', top: '50%', left: '50%', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(76,29,149,0.06) 0%, transparent 70%)', transform: 'translate(-50%,-50%)', pointerEvents: 'none' }} />
         <div style={{ position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(124,58,237,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(124,58,237,0.03) 1px, transparent 1px)', backgroundSize: '60px 60px', pointerEvents: 'none' }} />
-        <div className="hp-hero-grid" style={{ maxWidth: 1200, width: '100%', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', alignItems: 'center', gap: '2rem', position: 'relative', zIndex: 1 }}>
+        <div className="hp-hero-grid" style={{ maxWidth: 1200, width: '100%', margin: '0 auto', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', alignItems: 'center', gap: '1rem', position: 'relative', zIndex: 1 }}>
           <div className="hp-hero-text-container" style={{ textAlign: 'left' }}>
             {/* ParticleText for the main hero headline */}
             <div style={{ width: '100%', height: 'clamp(60px, 10vw, 120px)', marginBottom: '0.5rem' }}>
@@ -267,52 +273,55 @@ export default function StaffHomepage() {
               The all-in-one healthcare management platform for administrators, caretakers, and doctors. AI-powered insights for every role.
             </p>
             <div className="hp-hero-cta" style={{ opacity: 0, display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            {VISIBLE_ROLES.map(r => { const Icon = r.icon; return (
+              {VISIBLE_ROLES.map(r => {
+                const Icon = r.icon; return (
+                  <SpecularButton
+                    key={r.id}
+                    size="lg"
+                    radius={14}
+                    textColor="#f5f5f5"
+                    lineColor={r.accent}
+                    baseColor={r.gradient}
+                    intensity={1}
+                    shineSize={10}
+                    shineFade={40}
+                    thickness={1}
+                    speed={0.35}
+                    followMouse
+                    proximity={200}
+                    onClick={() => navigate(r.loginPath)}
+                    style={{ background: r.gradient, boxShadow: `0 4px 24px ${r.glow}`, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <Icon size={18} />{r.title} Login
+                  </SpecularButton>
+                );
+              })}
               <SpecularButton
-                key={r.id}
                 size="lg"
                 radius={14}
-                textColor="#f5f5f5"
-                lineColor={r.accent}
-                baseColor={r.gradient}
-                intensity={1}
-                shineSize={10}
-                shineFade={40}
+                textColor="#34d399"
+                lineColor="#10b981"
+                baseColor="rgba(16,185,129,0.08)"
+                intensity={0.8}
+                shineSize={8}
+                shineFade={30}
                 thickness={1}
-                speed={0.35}
+                speed={0.3}
                 followMouse
                 proximity={200}
-                onClick={() => navigate(r.loginPath)}
-                style={{ background: r.gradient, boxShadow: `0 4px 24px ${r.glow}`, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                onClick={() => navigate('/patient-login')}
+                style={{ border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.06)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
               >
-                <Icon size={18} />{r.title} Login
+                <Heart size={18} />Patient Login
               </SpecularButton>
-            ); })}
-            <SpecularButton
-              size="lg"
-              radius={14}
-              textColor="#34d399"
-              lineColor="#10b981"
-              baseColor="rgba(16,185,129,0.08)"
-              intensity={0.8}
-              shineSize={8}
-              shineFade={30}
-              thickness={1}
-              speed={0.3}
-              followMouse
-              proximity={200}
-              onClick={() => navigate('/patient-login')}
-              style={{ border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.06)' }}
-            >
-              I'm a Patient
-            </SpecularButton>
+            </div>
+          </div>
+
+          <div className="hp-hero-model" style={{ position: 'relative', width: '100%', height: '550px', opacity: 0, zIndex: 2 }}>
+            <BrainModel3D />
           </div>
         </div>
 
-        <div className="hp-hero-model" style={{ position: 'relative', width: '100%', height: '500px', opacity: 0, zIndex: 2 }}>
-          <BrainModel3D />
-        </div>
-      </div>
         <div className="hp-hero-scroll" style={{ opacity: 0, position: 'absolute', bottom: '2.5rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', color: '#5a5a72', fontSize: '0.75rem', cursor: 'pointer' }} onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}>
           <span>Scroll to explore</span><ChevronDown size={20} />
         </div>
@@ -322,18 +331,20 @@ export default function StaffHomepage() {
       <section className="hp-stats-section" style={{ padding: '5rem 2rem', position: 'relative' }}>
         <div style={{ maxWidth: 1000, margin: '0 auto' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-            {STATS.map((stat, i) => { const Icon = stat.icon; return (
-              <div key={i} className="hp-stat-item" style={{ textAlign: 'center', padding: '2rem 1.5rem', background: 'rgba(14,14,26,0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: '16px', transition: 'all 0.3s' }}
-              onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(124,58,237,0.4)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(124,58,237,0.15)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(124,58,237,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={22} color="#7c3aed" /></div>
+            {STATS.map((stat, i) => {
+              const Icon = stat.icon; return (
+                <div key={i} className="hp-stat-item" style={{ textAlign: 'center', padding: '2rem 1.5rem', background: 'rgba(14,14,26,0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(124,58,237,0.15)', borderRadius: '16px', transition: 'all 0.3s' }}
+                  onMouseEnter={e => { e.currentTarget.style.border = '1px solid rgba(124,58,237,0.4)'; e.currentTarget.style.transform = 'translateY(-4px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(124,58,237,0.15)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.75rem' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'rgba(124,58,237,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={22} color="#7c3aed" /></div>
+                  </div>
+                  <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', background: 'linear-gradient(135deg, #a78bfa, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '0.25rem' }}>{stat.value}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#5a5a72', fontWeight: 500 }}>{stat.label}</div>
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', background: 'linear-gradient(135deg, #a78bfa, #7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '0.25rem' }}>{stat.value}</div>
-                <div style={{ fontSize: '0.85rem', color: '#5a5a72', fontWeight: 500 }}>{stat.label}</div>
-              </div>
-            ); })}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -347,62 +358,64 @@ export default function StaffHomepage() {
             <p style={{ color: '#5a5a72', maxWidth: 500, margin: '0 auto', fontSize: '1rem' }}>Tailored dashboards and tools designed specifically for how each team member works.</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem' }}>
-            {VISIBLE_ROLES.map((role, i) => { const Icon = role.icon; const isEven = i % 2 === 0; return (
-              <div key={role.id} className="hp-role-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center', opacity: 0 }}>
-                <div style={{ order: isEven ? 0 : 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                    <div style={{ width: 52, height: 52, borderRadius: '14px', background: role.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${role.glow}` }}><Icon size={26} color="white" /></div>
-                    <div>
-                      <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#f0f0f5' }}>{role.title}</div>
-                      <div style={{ fontSize: '0.8rem', color: role.accent, fontWeight: 600, letterSpacing: '0.05em' }}>{role.subtitle}</div>
+            {VISIBLE_ROLES.map((role, i) => {
+              const Icon = role.icon; const isEven = i % 2 === 0; return (
+                <div key={role.id} className="hp-role-card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3rem', alignItems: 'center', opacity: 0 }}>
+                  <div style={{ order: isEven ? 0 : 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                      <div style={{ width: 52, height: 52, borderRadius: '14px', background: role.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 20px ${role.glow}` }}><Icon size={26} color="white" /></div>
+                      <div>
+                        <div style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#f0f0f5' }}>{role.title}</div>
+                        <div style={{ fontSize: '0.8rem', color: role.accent, fontWeight: 600, letterSpacing: '0.05em' }}>{role.subtitle}</div>
+                      </div>
                     </div>
-                  </div>
-                  <p style={{ fontSize: '1rem', color: '#8b8ba3', lineHeight: 1.7, marginBottom: '1.5rem' }}>{role.description}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
-                    {role.features.map(f => <span key={f} style={{ padding: '0.35rem 0.85rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600, background: `${role.accent}18`, color: role.accent, border: `1px solid ${role.accent}30` }}>{f}</span>)}
-                  </div>
-                  <SpecularButton
-                    size="md"
-                    radius={10}
-                    textColor="#ffffff"
-                    lineColor={role.accent}
-                    baseColor={role.gradient}
-                    intensity={1}
-                    followMouse
-                    proximity={180}
-                    onClick={() => navigate(role.loginPath)}
-                    style={{ background: role.gradient, boxShadow: `0 4px 20px ${role.glow}`, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-                  >
-                    Access {role.title} Portal <ArrowRight size={16} />
-                  </SpecularButton>
-                </div>
-                <div style={{ order: isEven ? 1 : 0 }}>
-                  <div style={{ background: 'rgba(14,14,26,0.8)', backdropFilter: 'blur(20px)', border: `1px solid ${role.accent}20`, borderRadius: '20px', padding: '2rem', boxShadow: `0 8px 40px ${role.glow}20`, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: role.gradient }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f87171' }} />
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24' }} />
-                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#34d399' }} />
-                      <div style={{ flex: 1, height: 24, borderRadius: '6px', background: 'rgba(255,255,255,0.04)', marginLeft: '0.5rem' }} />
+                    <p style={{ fontSize: '1rem', color: '#8b8ba3', lineHeight: 1.7, marginBottom: '1.5rem' }}>{role.description}</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '2rem' }}>
+                      {role.features.map(f => <span key={f} style={{ padding: '0.35rem 0.85rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600, background: `${role.accent}18`, color: role.accent, border: `1px solid ${role.accent}30` }}>{f}</span>)}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-                      {[82, 94, 67, 91].map((val, j) => (
-                        <div key={j} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '0.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                          <div style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: role.accent }}>{val}%</div>
-                          <div style={{ fontSize: '0.7rem', color: '#5a5a72', marginTop: '0.15rem' }}>{['Accuracy', 'Uptime', 'Compliance', 'Coverage'][j]}</div>
+                    <SpecularButton
+                      size="md"
+                      radius={10}
+                      textColor="#ffffff"
+                      lineColor={role.accent}
+                      baseColor={role.gradient}
+                      intensity={1}
+                      followMouse
+                      proximity={180}
+                      onClick={() => navigate(role.loginPath)}
+                      style={{ background: role.gradient, boxShadow: `0 4px 20px ${role.glow}`, display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                    >
+                      Access {role.title} Portal <ArrowRight size={16} />
+                    </SpecularButton>
+                  </div>
+                  <div style={{ order: isEven ? 1 : 0 }}>
+                    <div style={{ background: 'rgba(14,14,26,0.8)', backdropFilter: 'blur(20px)', border: `1px solid ${role.accent}20`, borderRadius: '20px', padding: '2rem', boxShadow: `0 8px 40px ${role.glow}20`, position: 'relative', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: role.gradient }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f87171' }} />
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#fbbf24' }} />
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#34d399' }} />
+                        <div style={{ flex: 1, height: 24, borderRadius: '6px', background: 'rgba(255,255,255,0.04)', marginLeft: '0.5rem' }} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                        {[82, 94, 67, 91].map((val, j) => (
+                          <div key={j} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '0.75rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ fontSize: '1.2rem', fontWeight: 800, fontFamily: 'Outfit, sans-serif', color: role.accent }}>{val}%</div>
+                            <div style={{ fontSize: '0.7rem', color: '#5a5a72', marginTop: '0.15rem' }}>{['Accuracy', 'Uptime', 'Compliance', 'Coverage'][j]}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#5a5a72', marginBottom: '0.75rem', fontWeight: 600 }}>7-Day Overview</div>
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: 60 }}>
+                          {[40, 65, 50, 80, 70, 90, 85].map((h, j) => <div key={j} style={{ flex: 1, height: `${h}%`, borderRadius: '4px 4px 0 0', background: role.gradient, opacity: 0.7 + j * 0.04 }} />)}
                         </div>
-                      ))}
-                    </div>
-                    <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <div style={{ fontSize: '0.75rem', color: '#5a5a72', marginBottom: '0.75rem', fontWeight: 600 }}>7-Day Overview</div>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: 60 }}>
-                        {[40, 65, 50, 80, 70, 90, 85].map((h, j) => <div key={j} style={{ flex: 1, height: `${h}%`, borderRadius: '4px 4px 0 0', background: role.gradient, opacity: 0.7 + j * 0.04 }} />)}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ); })}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -436,16 +449,18 @@ export default function StaffHomepage() {
             <p style={{ color: '#5a5a72', maxWidth: 500, margin: '0 auto' }}>Powerful tools built for modern healthcare, wrapped in an intuitive interface.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
-            {FEATURES.map((feat, i) => { const Icon = feat.icon; return (
-              <div key={i} className="hp-feature-card" style={{ padding: '1.75rem', borderRadius: '16px', background: 'rgba(14,14,26,0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.35s', cursor: 'default' }}
-              onMouseEnter={e => { e.currentTarget.style.border = `1px solid ${feat.color}30`; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 30px ${feat.color}15`; }}
-              onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                <div style={{ width: 48, height: 48, borderRadius: '12px', marginBottom: '1rem', background: `${feat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={24} color={feat.color} /></div>
-                <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 700, color: '#f0f0f5', marginBottom: '0.5rem' }}>{feat.title}</h4>
-                <p style={{ fontSize: '0.85rem', color: '#5a5a72', lineHeight: 1.6 }}>{feat.desc}</p>
-              </div>
-            ); })}
+            {FEATURES.map((feat, i) => {
+              const Icon = feat.icon; return (
+                <div key={i} className="hp-feature-card" style={{ padding: '1.75rem', borderRadius: '16px', background: 'rgba(14,14,26,0.6)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.05)', transition: 'all 0.35s', cursor: 'default' }}
+                  onMouseEnter={e => { e.currentTarget.style.border = `1px solid ${feat.color}30`; e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = `0 8px 30px ${feat.color}15`; }}
+                  onMouseLeave={e => { e.currentTarget.style.border = '1px solid rgba(255,255,255,0.05)'; e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                >
+                  <div style={{ width: 48, height: 48, borderRadius: '12px', marginBottom: '1rem', background: `${feat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={24} color={feat.color} /></div>
+                  <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1rem', fontWeight: 700, color: '#f0f0f5', marginBottom: '0.5rem' }}>{feat.title}</h4>
+                  <p style={{ fontSize: '0.85rem', color: '#5a5a72', lineHeight: 1.6 }}>{feat.desc}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -455,28 +470,30 @@ export default function StaffHomepage() {
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
           <div className="hp-cta-inner" style={{ opacity: 0, textAlign: 'center', background: 'linear-gradient(135deg, rgba(124,58,237,0.15) 0%, rgba(76,29,149,0.1) 100%)', border: '1px solid rgba(124,58,237,0.25)', borderRadius: '24px', padding: '4rem 3rem', boxShadow: '0 0 80px rgba(124,58,237,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1.5rem' }}>
-              {[0,1,2,3,4].map(i => <Star key={i} size={18} color="#fbbf24" fill="#fbbf24" />)}
+              {[0, 1, 2, 3, 4].map(i => <Star key={i} size={18} color="#fbbf24" fill="#fbbf24" />)}
             </div>
             <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.2rem', fontWeight: 800, color: '#f0f0f5', marginBottom: '1rem' }}>Ready to Transform Care?</h2>
             <p style={{ color: '#8b8ba3', marginBottom: '2.5rem', fontSize: '1rem', lineHeight: 1.7 }}>Sign in to your role-specific portal and unlock the full power of intelligent healthcare management.</p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {VISIBLE_ROLES.map(r => { const Icon = r.icon; return (
-                <SpecularButton
-                  key={r.id}
-                  size="md"
-                  radius={10}
-                  textColor="#f5f5f5"
-                  lineColor={r.accent}
-                  baseColor={r.gradient}
-                  intensity={1}
-                  followMouse
-                  proximity={180}
-                  onClick={() => navigate(r.loginPath)}
-                  style={{ background: r.gradient, boxShadow: `0 4px 20px ${r.glow}`, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
-                >
-                  <Icon size={16} />{r.title}
-                </SpecularButton>
-              ); })}
+              {VISIBLE_ROLES.map(r => {
+                const Icon = r.icon; return (
+                  <SpecularButton
+                    key={r.id}
+                    size="md"
+                    radius={10}
+                    textColor="#f5f5f5"
+                    lineColor={r.accent}
+                    baseColor={r.gradient}
+                    intensity={1}
+                    followMouse
+                    proximity={180}
+                    onClick={() => navigate(r.loginPath)}
+                    style={{ background: r.gradient, boxShadow: `0 4px 20px ${r.glow}`, display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <Icon size={16} />{r.title}
+                  </SpecularButton>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -493,14 +510,30 @@ export default function StaffHomepage() {
 
       <style>{`
         @media (max-width: 900px) {
-          .hp-hero-grid { grid-template-columns: 1fr !important; text-align: center !important; }
+          .hp-hero-grid { grid-template-columns: 1fr !important; text-align: center !important; gap: 0 !important; }
           .hp-hero-text-container { text-align: center !important; }
           .hp-hero-cta { justify-content: center !important; }
-          .hp-hero-model { height: 350px !important; margin-top: 2rem; }
+          .hp-hero-model { height: 350px !important; margin-top: 2rem; left: 0 !important; transform: translateX(0) !important; }
+        }
+        @media (max-width: 600px) {
+          .hp-hero-model { height: 300px !important; }
         }
         @media (max-width: 768px) {
           .hp-role-card { grid-template-columns: 1fr !important; }
           .hp-role-card > div { order: unset !important; }
+        }
+        @media (min-width: 901px) {
+          /* Pin the brain to the top-right of the viewport.
+             Size is baked in here (old 0.4 width / 550px height x 1.15) instead of using a
+             GSAP scale transform, so the 3D canvas always measures its true size. */
+          .hp-hero-grid { min-height: 550px; } /* keeps the hero layout identical now the brain is out of flow */
+          .hp-hero-model {
+            position: fixed !important;
+            height: 632px !important;
+            top: max(6rem, 50vh - 300px);
+            right: max(0.5rem, max(2rem, (100vw - 1200px) / 2) - (min(100vw - 4rem, 1200px) - 1rem) * 0.03);
+            width: calc((min(100vw - 4rem, 1200px) - 1rem) * 0.46) !important;
+          }
         }
       `}</style>
     </div>

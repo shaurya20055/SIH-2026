@@ -6,6 +6,7 @@ import { Play, Brain, Trophy, Zap, ArrowRight, Volume2, Gamepad2, Flame, Star, B
 import { getPatient, getTodayReminders } from '../api';
 import ProgressRing from '../components/ProgressRing';
 import gsap from 'gsap';
+import ParticleText from '../components/ParticleText';
 
 const ACTIVITIES = [
   { id: 1, label: 'Memory Game', done: true },
@@ -100,9 +101,26 @@ export default function PatientHome({ patientId }) {
         <div className="flex items-center justify-between">
           <div>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{getGreeting()}</p>
-            <h1 style={{ fontSize: '2rem' }}>
-              {patient.name?.split(' ')[0]}
-            </h1>
+            <div style={{ width: '300px', height: '48px', position: 'relative', left: '-12px', marginTop: '-4px' }}>
+              <ParticleText
+                text={patient.name?.split(' ')[0] || 'Patient'}
+                particleSize={1.5}
+                density={2}
+                color="#f0f0f5"
+                highlightColor="#D946EF"
+                scatter={80}
+                gatherDuration={1200}
+                stagger={300}
+                pointerRepel={30}
+                repelRadius={80}
+                idleDrift={0.6}
+                trigger="mount"
+                fontSize="clamp(2rem, 5vw, 3rem)"
+                fontWeight={800}
+                fontFamily="Outfit, sans-serif"
+                textAlign="left"
+              />
+            </div>
           </div>
           <button
             className="btn btn-icon btn-secondary"

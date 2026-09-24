@@ -59,35 +59,54 @@ export default function ParticleText({
   const animFrameRef = useRef(null);
   const mouseRef = useRef({ x: -9999, y: -9999 });
   const gatheredRef = useRef(false);
+  // Timestamp (performance.now()) marking when the current gather animation
+  // actually started — NOT when the component mounted. Using a mount-time
+  // baseline meant particles could "jump" partway into the animation by the
+  // time fonts finished loading and the canvas was actually ready.
+  const gatherStartRef = useRef(null);
   const containerRef = useRef(null);
 
   const [baseR, baseG, baseB] = hexToRgb(color);
   const [hlR, hlG, hlB] = hexToRgb(highlightColor);
 
   const sampleText = useCallback((canvas, ctx) => {
-    const W = canvas.width;
-    const H = canvas.height;
+    // canvas.width/height are physical (device) pixels — already multiplied
+    // by devicePixelRatio. The context also has ctx.scale(dpr, dpr) applied
+    // (see initCanvas), so all *drawing* coordinates must be expressed in
+    // CSS-pixel space, not device-pixel space, or everything gets scaled
+    // twice and ends up drawn outside the visible canvas.
+    const dpr = window.devicePixelRatio || 1;
+    const pxW = canvas.width;   // device pixels — for getImageData only
+    const pxH = canvas.height;
+    const W = pxW / dpr;        // CSS pixels — for layout/measure/draw
+    const H = pxH / dpr;
 
     // Determine font size in px
     let fsPx = 96;
+    const parseSize = (str) => {
+      let val = parseFloat(str) || 96;
+      if (str.includes('rem')) val *= 16;
+      else if (str.includes('vw')) val *= (window.innerWidth / 100);
+      return val;
+    };
+
     if (typeof fontSize === 'string') {
       if (fontSize.includes('clamp')) {
-        // evaluate clamp roughly: pick middle value
         const parts = fontSize.replace('clamp(', '').replace(')', '').split(',');
         if (parts.length >= 2) {
-          const mid = parts[1].trim();
-          const parsed = parseFloat(mid);
-          if (!isNaN(parsed)) fsPx = parsed;
-          else fsPx = parseFloat(parts[0]) || 96;
+          fsPx = parseSize(parts[1]);
+        } else {
+          fsPx = parseSize(parts[0]);
         }
       } else {
-        fsPx = parseFloat(fontSize) || 96;
+        fsPx = parseSize(fontSize);
       }
     } else {
       fsPx = fontSize || 96;
     }
 
-    // Scale font to fit canvas width
+    // Scale font to fit canvas width (CSS-pixel space — measureText is not
+    // affected by the current transform, so it's already in this space)
     ctx.font = `${fontWeight} ${fsPx}px ${fontFamily}`;
     let measured = ctx.measureText(text).width;
     while (measured > W * 0.9 && fsPx > 10) {
@@ -100,34 +119,37 @@ export default function ParticleText({
     ctx.fillStyle = '#fff';
     ctx.textAlign = textAlign;
     ctx.textBaseline = 'middle';
-    
+
     let xPos = W / 2;
     if (textAlign === 'left') xPos = 0;
     else if (textAlign === 'right') xPos = W;
-    
+
     ctx.fillText(text, xPos, H / 2);
 
-    const imgData = ctx.getImageData(0, 0, W, H);
+    // getImageData always reads the raw device-pixel buffer, unaffected by
+    // the current transform — so this must use the physical dimensions.
+    const imgData = ctx.getImageData(0, 0, pxW, pxH);
     const pixels = [];
-    const gap = Math.max(1, Math.round(density));
+    const gap = Math.max(1, Math.round(density * dpr));
 
-    for (let y = 0; y < H; y += gap) {
-      for (let x = 0; x < W; x += gap) {
-        const idx = (y * W + x) * 4;
+    for (let y = 0; y < pxH; y += gap) {
+      for (let x = 0; x < pxW; x += gap) {
+        const idx = (y * pxW + x) * 4;
         if (imgData.data[idx + 3] > 128) {
-          pixels.push({ x, y });
+          // Convert sampled device-pixel coords back to CSS-pixel space so
+          // they line up with everything else (mouse position, particle
+          // drawing) which all live in CSS-pixel space.
+          pixels.push({ x: x / dpr, y: y / dpr });
         }
       }
     }
 
     ctx.clearRect(0, 0, W, H);
     return pixels;
-  }, [text, fontSize, fontWeight, fontFamily, density]);
+  }, [text, fontSize, fontWeight, fontFamily, density, textAlign]);
 
   const buildParticles = useCallback((canvas, ctx) => {
     const pixels = sampleText(canvas, ctx);
-    const W = canvas.width;
-    const H = canvas.height;
 
     return pixels.map((p, i) => {
       const angle = Math.random() * Math.PI * 2;
@@ -174,31 +196,32 @@ export default function ParticleText({
 
     particlesRef.current = buildParticles(canvas, ctx);
     gatheredRef.current = false;
+    gatherStartRef.current = null;
 
     // Trigger gather on mount
     if (trigger === 'mount') {
       setTimeout(() => {
         gatheredRef.current = true;
+        gatherStartRef.current = performance.now();
       }, 60);
     }
   }, [buildParticles, trigger]);
 
   useEffect(() => {
-    initCanvas();
+    let isMounted = true;
+    document.fonts.ready.then(() => {
+      if (!isMounted) return;
+      initCanvas();
+    });
 
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
-    const dpr = window.devicePixelRatio || 1;
-    const W = canvas.width / dpr;
-    const H = canvas.height / dpr;
     const ctx = canvas.getContext('2d');
-    const startTime = performance.now();
 
-    // Mouse move tracking (relative to canvas)
+    // Mouse move tracking (relative to canvas, in CSS-pixel space)
     const onMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
       mouseRef.current = {
         x: (e.clientX - rect.left),
         y: (e.clientY - rect.top),
@@ -207,29 +230,50 @@ export default function ParticleText({
     const onMouseLeave = () => {
       mouseRef.current = { x: -9999, y: -9999 };
     };
+    const onHoverEnter = () => {
+      gatheredRef.current = true;
+      gatherStartRef.current = performance.now();
+    };
+    const onHoverLeave = () => {
+      gatheredRef.current = false;
+      gatherStartRef.current = null;
+      onMouseLeave();
+    };
 
     if (trigger === 'hover') {
-      container.addEventListener('mouseenter', () => { gatheredRef.current = true; });
-      container.addEventListener('mouseleave', () => { gatheredRef.current = false; onMouseLeave(); });
+      container.addEventListener('mouseenter', onHoverEnter);
+      container.addEventListener('mouseleave', onHoverLeave);
+    } else {
+      container.addEventListener('mouseleave', onMouseLeave);
     }
     window.addEventListener('mousemove', onMouseMove);
-    container.addEventListener('mouseleave', onMouseLeave);
 
     const animate = (now) => {
+      // Read the canvas's *current* size every frame — it's set
+      // asynchronously by initCanvas (after fonts load), so capturing it
+      // once up front would clear the wrong (stale/default) area.
+      const dpr = window.devicePixelRatio || 1;
+      const W = canvas.width / dpr;
+      const H = canvas.height / dpr;
       ctx.clearRect(0, 0, W, H);
-      const elapsed = now - startTime;
+
       const particles = particlesRef.current;
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
+      const elapsedSinceGather = gatherStartRef.current !== null
+        ? now - gatherStartRef.current
+        : 0;
 
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
 
-        const readyToGather = gatheredRef.current && elapsed > p.waveDelay;
+        const readyToGather = gatheredRef.current
+          && gatherStartRef.current !== null
+          && elapsedSinceGather > p.waveDelay;
 
         if (readyToGather) {
           // Spring toward target
-          const t = Math.min(1, (elapsed - p.waveDelay) / gatherDuration);
+          const t = Math.min(1, (elapsedSinceGather - p.waveDelay) / gatherDuration);
           const ease = 1 - Math.pow(1 - t, 4);
 
           // Drift when near target
@@ -295,22 +339,31 @@ export default function ParticleText({
 
     animFrameRef.current = requestAnimationFrame(animate);
 
-    // Resize observer
+    // Resize observer — rebuild particles for the new size, but never touch
+    // the animation loop. ResizeObserver always fires once immediately after
+    // observe() starts (even with no real resize), so cancelling the rAF
+    // loop here — with nothing to ever restart it — killed the animation
+    // almost immediately after mount. The loop already reads
+    // particlesRef.current fresh every frame, so it picks up the rebuilt
+    // particles on its own without needing to be stopped.
     const ro = new ResizeObserver(() => {
-      cancelAnimationFrame(animFrameRef.current);
       initCanvas();
-      // restart anim after re-init by re-running useEffect cleanup/setup would be complex;
-      // simpler: just reinit particles, the RAF loop above will re-read them
     });
     ro.observe(container);
 
     return () => {
+      isMounted = false;
       cancelAnimationFrame(animFrameRef.current);
       window.removeEventListener('mousemove', onMouseMove);
-      container.removeEventListener('mouseleave', onMouseLeave);
+      if (trigger === 'hover') {
+        container.removeEventListener('mouseenter', onHoverEnter);
+        container.removeEventListener('mouseleave', onHoverLeave);
+      } else {
+        container.removeEventListener('mouseleave', onMouseLeave);
+      }
       ro.disconnect();
     };
-  }, [initCanvas, gatherDuration, repelRadius, pointerRepel, glow, highlightColor, trigger]);
+  }, [initCanvas, gatherDuration, repelRadius, pointerRepel, glow, highlightColor, color, trigger]);
 
   return (
     <div

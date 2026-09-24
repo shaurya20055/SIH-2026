@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Clock, Star, Zap, ArrowRight, Gamepad2 } from 'lucide-react';
 import gsap from 'gsap';
+import ParticleText from '../components/ParticleText';
+import ElectricBorder from '../components/ElectricBorder';
 
 const CATEGORIES = ['All', 'Memory', 'Attention', 'Pattern', 'Recognition', 'Language', 'Logic', 'Daily Recall', 'Social', 'Emotions'];
 
@@ -35,12 +37,28 @@ export default function GamesHub({ patientId }) {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title">
-          <span className="title-icon"><Gamepad2 size={22} /></span>
-          Brain Games
-        </h1>
-        <p className="page-subtitle">Train your mind with fun, personalized challenges</p>
+      <div className="page-header" style={{ position: 'relative' }}>
+        <div style={{ width: '100%', height: 160, position: 'relative', left: '-5%' }}>
+          <ParticleText
+            text="Brain Games"
+            particleSize={2.2}
+            density={4}
+            color="#f0f0f5"
+            highlightColor="#D946EF"
+            scatter={190}
+            gatherDuration={1600}
+            stagger={420}
+            pointerRepel={42}
+            repelRadius={120}
+            idleDrift={0.8}
+            trigger="mount"
+            fontSize="clamp(3rem, 10vw, 5rem)"
+            fontWeight={800}
+            fontFamily="Outfit, sans-serif"
+            glow
+          />
+        </div>
+        <p className="page-subtitle" style={{ marginTop: '-1rem' }}>Train your mind with fun, personalized challenges</p>
       </div>
 
       {/* Category Tabs */}
@@ -65,33 +83,44 @@ export default function GamesHub({ patientId }) {
               className="game-card"
               onClick={() => navigate(`/dashboard/game/${game.id}`)}
               style={{
-                background: game.gradient,
                 cursor: 'pointer',
                 opacity: 1,
+                padding: 0, // Remove padding since ElectricBorder will handle the inner spacing
+                background: 'transparent'
               }}
               whileHover={{ y: -2, boxShadow: '0 0 20px rgba(124,58,237,0.12)' }}
             >
-              <div>
-                <div className="game-title">{game.title}</div>
-                <div className="game-desc">{game.desc}</div>
-              </div>
+              <ElectricBorder
+                color="#8b5cf6"
+                speed={1.2}
+                chaos={0.15}
+                thickness={2}
+                style={{ borderRadius: '16px', height: '100%', width: '100%' }}
+              >
+                <div style={{ padding: '1.5rem', background: game.gradient, height: '100%', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <div className="game-title">{game.title}</div>
+                    <div className="game-desc">{game.desc}</div>
+                  </div>
 
-              {/* Progress bar */}
-              {game.progress > 0 && (
-                <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.04)', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${game.progress}%`, height: '100%', background: 'var(--gradient-accent)', borderRadius: '2px' }} />
+                  {/* Progress bar */}
+                  {game.progress > 0 && (
+                    <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.04)', borderRadius: '2px', overflow: 'hidden' }}>
+                      <div style={{ width: `${game.progress}%`, height: '100%', background: 'var(--gradient-accent)', borderRadius: '2px' }} />
+                    </div>
+                  )}
+
+                  <div className="game-meta" style={{ marginTop: 'auto' }}>
+                    <span className="flex items-center gap-1">
+                      <Clock size={12} /> {game.duration}
+                    </span>
+                    <span className="badge badge-info">{game.difficulty}</span>
+                    <span className="game-xp flex items-center gap-1">
+                      <Zap size={12} /> +{game.xp} XP
+                    </span>
+                  </div>
                 </div>
-              )}
-
-              <div className="game-meta">
-                <span className="flex items-center gap-1">
-                  <Clock size={12} /> {game.duration}
-                </span>
-                <span className="badge badge-info">{game.difficulty}</span>
-                <span className="game-xp flex items-center gap-1">
-                  <Zap size={12} /> +{game.xp} XP
-                </span>
-              </div>
+              </ElectricBorder>
             </motion.div>
           );
         })}

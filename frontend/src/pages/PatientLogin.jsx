@@ -14,7 +14,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 export default function PatientLogin({ onLogin }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState('login'); // 'login' | 'register'
-  const [form, setForm] = useState({ username: '', email: '', password: '', name: '', age: 65 });
+  const [form, setForm] = useState({ username: '', email: '', password: '', name: '', age: 65, caretaker_id: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -89,6 +89,10 @@ export default function PatientLogin({ onLogin }) {
       setError('Please fill in all required fields');
       return;
     }
+    if (!form.caretaker_id) {
+      setError('Caretaker ID is required. Your caretaker must register first to receive an ID.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -123,6 +127,7 @@ export default function PatientLogin({ onLogin }) {
           age: parseInt(form.age) || 65,
           language: 'english',
           cognitive_level: 1,
+          caregiver: form.caretaker_id,
         }),
       });
 
@@ -178,21 +183,7 @@ export default function PatientLogin({ onLogin }) {
 
   return (
     <div style={{ minHeight: '100vh', background: '#06060e', position: 'relative', overflow: 'hidden', display: 'flex' }}>
-      {/* CursorGrid background */}
-      <CursorGrid
-        cellSize={70}
-        color="#D946EF"
-        radius={140}
-        falloff="smooth"
-        holdTime={400}
-        fadeDuration={800}
-        lineWidth={1}
-        maxOpacity={0.5}
-        fillOpacity={0}
-        gridOpacity={0}
-        clickPulse
-        pulseSpeed={600}
-      />
+
 
       {/* Ambient */}
       <div style={{ position: 'absolute', top: '-15%', right: '-10%', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(217,70,239,0.1) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -302,10 +293,10 @@ export default function PatientLogin({ onLogin }) {
 
             {/* Username */}
             <div style={{ position: 'relative' }}>
-              <Mail size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#5a5a72', zIndex: 1 }} />
+              <User size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#5a5a72', zIndex: 1 }} />
               <input
                 value={form.username} onChange={handleChange('username')}
-                placeholder="Username" style={inputStyle}
+                placeholder="Username (User ID)" style={inputStyle}
                 onFocus={e => { e.target.style.border = '1px solid rgba(217,70,239,0.4)'; e.target.style.boxShadow = '0 0 0 3px rgba(217,70,239,0.08)'; }}
                 onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
               />
@@ -335,6 +326,24 @@ export default function PatientLogin({ onLogin }) {
                   onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
+            )}
+
+            {/* Caretaker ID — only register */}
+            {mode === 'register' && (
+              <>
+                <div style={{ position: 'relative' }}>
+                  <User size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#5a5a72', zIndex: 1 }} />
+                  <input
+                    value={form.caretaker_id} onChange={handleChange('caretaker_id')}
+                    placeholder="Caretaker ID" type="text" style={inputStyle}
+                    onFocus={e => { e.target.style.border = '1px solid rgba(217,70,239,0.4)'; e.target.style.boxShadow = '0 0 0 3px rgba(217,70,239,0.08)'; }}
+                    onBlur={e => { e.target.style.border = '1px solid rgba(255,255,255,0.08)'; e.target.style.boxShadow = 'none'; }}
+                  />
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#8b8ba3', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                  Don't have a Caretaker ID? <span onClick={() => navigate('/staff')} style={{ color: '#D946EF', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>Ask your caretaker to register here</span>.
+                </div>
+              </>
             )}
 
             {/* Password */}

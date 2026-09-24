@@ -12,7 +12,7 @@ import {
   CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 
-const PATIENTS = [
+const FALLBACK_PATIENTS = [
   { id: 1, name: 'Kamala Devi', age: 72, condition: 'stable', cognitive: 72, mood: 4, games: 12, streak: 7, lastSeen: '2h ago', doctor: 'Dr. Ananya Mehta', avatar: 'KD', meds: ['Donepezil 10mg', 'Vitamin B12'], alerts: [] },
   { id: 2, name: 'Rina Bora', age: 68, condition: 'improving', cognitive: 65, mood: 3, games: 8, streak: 3, lastSeen: '5h ago', doctor: 'Dr. Rohan Kapoor', avatar: 'RB', meds: ['Memantine 20mg'], alerts: ['Missed morning medicine'] },
   { id: 3, name: 'Dipak Saikia', age: 75, condition: 'warning', cognitive: 45, mood: 2, games: 4, streak: 0, lastSeen: '1d ago', doctor: 'Dr. Ananya Mehta', avatar: 'DS', meds: ['Rivastigmine 6mg', 'Aricept 5mg'], alerts: ['Cognitive decline detected', 'Missed sessions 3 days'] },
@@ -64,7 +64,41 @@ export default function CaretakerDashboard() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [search, setSearch] = useState('');
   const [reminders, setReminders] = useState(REMINDERS);
+  const [apiPatients, setApiPatients] = useState(FALLBACK_PATIENTS);
   const staffName = localStorage.getItem('staff_name') || 'Caretaker';
+
+  useEffect(() => {
+    fetch('http://localhost:8000/api/patients/')
+      .then(res => res.json())
+      .then(data => {
+        const list = Array.isArray(data) ? data : data.results || [];
+        if (list.length > 0) {
+          const formatted = list.map(p => {
+             let initials = "PA";
+             if (p.name) initials = p.name.split(' ').map(n=>n[0]).join('').toUpperCase().substring(0,2);
+             return {
+                id: p.id,
+                name: p.name,
+                age: p.age || 65,
+                condition: p.cognitive_level >= 3 ? 'warning' : p.cognitive_level === 1 ? 'stable' : 'improving',
+                cognitive: p.total_xp > 0 ? Math.min(100, Math.round((p.total_xp / 1000) * 100)) : 60,
+                mood: 4,
+                games: p.current_streak || 0,
+                streak: p.current_streak || 0,
+                lastSeen: p.last_played || 'Just now',
+                doctor: p.doctor_name || 'Dr. Assigned',
+                avatar: initials,
+                meds: [], 
+                alerts: (p.current_streak === 0) ? ['Missed recent sessions'] : []
+             };
+          });
+          setApiPatients(formatted);
+        }
+      })
+      .catch(e => console.error(e));
+  }, []);
+
+  const PATIENTS = apiPatients;
 
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -153,7 +187,12 @@ export default function CaretakerDashboard() {
             <h1 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.8rem', fontWeight: 800, color: '#f0f0f5', marginBottom: '0.25rem' }}>
               {tab === 'overview' ? `Good morning, ${staffName.split(' ')[0]}! 👋` : tab === 'patients' ? 'Patient Reports' : tab === 'reminders' ? 'Care Reminders' : 'Health Analytics'}
             </h1>
-            <p style={{ color: '#5a5a72', fontSize: '0.875rem' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <p style={{ color: '#5a5a72', fontSize: '0.875rem' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <div style={{ padding: '0.2rem 0.6rem', background: 'rgba(217,70,239,0.1)', border: '1px solid rgba(217,70,239,0.2)', borderRadius: '6px', fontSize: '0.75rem', color: '#D946EF', fontWeight: 700 }}>
+                Your Caretaker ID: {localStorage.getItem('caretaker_id') || 'N/A'}
+              </div>
+            </div>
           </div>
           <button style={{ padding: '0.6rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#5a5a72', cursor: 'pointer', position: 'relative' }}>
             <Bell size={18} />

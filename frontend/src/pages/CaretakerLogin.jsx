@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
-import { UserCheck, Brain, Eye, EyeOff, ArrowLeft, Lock, Mail, AlertCircle, Heart } from 'lucide-react';
+import { UserCheck, Brain, Eye, EyeOff, ArrowLeft, Lock, User, AlertCircle, Heart } from 'lucide-react';
 
 export default function CaretakerLogin() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState('login');
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
@@ -31,18 +33,62 @@ export default function CaretakerLogin() {
     gsap.to('.ctlog-card-inner', { rotateY: xO, rotateX: -yO, duration: 1, ease: 'power1.out' });
   }, [mousePos]);
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!email || !password) { setError('Please fill in all fields.'); return; }
+    if (!username || !password || (mode === 'register' && !name)) { setError('Please fill in all required fields.'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 900));
-    if (email.includes('@') && password.length >= 4) {
-      localStorage.setItem('staff_role', 'caretaker');
-      localStorage.setItem('staff_name', 'Priya Sharma');
+    
+    try {
+      let tokens;
+      
+      if (mode === 'register') {
+        const regRes = await fetch('http://localhost:8000/api/auth/register/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username,
+            password,
+            email: `${username}@mindsathi.ai`,
+            first_name: name,
+            last_name: '',
+            role: 'caregiver',
+          }),
+        });
+        if (!regRes.ok) throw new Error('Registration failed. Username might be taken.');
+        
+        // Auto-login
+        const loginRes = await fetch('http://localhost:8000/api/auth/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        tokens = await loginRes.json();
+      } else {
+        const loginRes = await fetch('http://localhost:8000/api/auth/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        if (!loginRes.ok) throw new Error('Invalid credentials.');
+        tokens = await loginRes.json();
+      }
+
+      // Get user info
+      const meRes = await fetch('http://localhost:8000/api/auth/me/', {
+        headers: { Authorization: `Bearer ${tokens.access}` },
+      });
+      if (meRes.ok) {
+        const user = await meRes.json();
+        localStorage.setItem('staff_role', 'caretaker');
+        localStorage.setItem('staff_name', user.first_name || user.username);
+        localStorage.setItem('caretaker_id', user.id); 
+      }
+
       gsap.to('.ctlog-right', { opacity: 0, scale: 0.95, duration: 0.4, onComplete: () => navigate('/caretaker-dashboard') });
-    } else {
-      setError('Invalid credentials. Try any email with password (min 4 chars).');
+
+    } catch (err) {
+      setError(err.message || 'Action failed.');
       gsap.to('.ctlog-form', { keyframes: [{ x: -8 }, { x: 8 }, { x: -6 }, { x: 6 }, { x: 0 }], duration: 0.4 });
     }
     setLoading(false);
@@ -100,15 +146,28 @@ export default function CaretakerLogin() {
                 <Brain size={20} color="#0ea5e9" />
                 <span style={{ fontFamily: 'Outfit, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#f0f0f5' }}>MindSathi</span>
               </div>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#f0f0f5' }}>Caretaker Sign In</h2>
-              <p style={{ color: '#5a5a72', fontSize: '0.85rem', marginTop: '0.4rem' }}>Access your patient care dashboard</p>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', fontWeight: 800, color: '#f0f0f5' }}>{mode === 'login' ? 'Caretaker Sign In' : 'Caretaker Registration'}</h2>
+              <p style={{ color: '#5a5a72', fontSize: '0.85rem', marginTop: '0.4rem' }}>{mode === 'login' ? 'Access your patient care dashboard' : 'Join as a Caretaker/Family Member'}</p>
             </div>
-            <form className="ctlog-form" onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form className="ctlog-form" onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {mode === 'register' && (
+                <div className="ctlog-field">
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#8b8ba3', display: 'block', marginBottom: '0.4rem' }}>Full Name</label>
+                  <div style={{ position: 'relative' }}>
+                    <UserCheck size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5a5a72' }} />
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="John Doe"
+                      style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#f0f0f5', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', outline: 'none', transition: 'border 0.2s' }}
+                      onFocus={e => e.target.style.border = '1px solid rgba(14,165,233,0.5)'}
+                      onBlur={e => e.target.style.border = '1px solid rgba(255,255,255,0.08)'}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="ctlog-field">
-                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#8b8ba3', display: 'block', marginBottom: '0.4rem' }}>Email Address</label>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#8b8ba3', display: 'block', marginBottom: '0.4rem' }}>User ID (Username)</label>
                 <div style={{ position: 'relative' }}>
-                  <Mail size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5a5a72' }} />
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="caretaker@mindsathi.ai"
+                  <User size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#5a5a72' }} />
+                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="johndoe"
                     style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.5rem', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#f0f0f5', fontSize: '0.9rem', fontFamily: 'Inter, sans-serif', outline: 'none', transition: 'border 0.2s' }}
                     onFocus={e => e.target.style.border = '1px solid rgba(14,165,233,0.5)'}
                     onBlur={e => e.target.style.border = '1px solid rgba(255,255,255,0.08)'}
@@ -143,12 +202,20 @@ export default function CaretakerLogin() {
                     <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
                     Signing in...
                   </span>
-                ) : 'Sign in to Caretaker Portal'}
+                ) : mode === 'login' ? 'Sign in to Caretaker Portal' : 'Create Caretaker Account'}
               </button>
             </form>
-            <div style={{ marginTop: '1.5rem', padding: '1rem', background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.15)', borderRadius: '10px', fontSize: '0.78rem', color: '#5a5a72' }}>
-              <div style={{ fontWeight: 700, color: '#8b8ba3', marginBottom: '0.3rem' }}>Demo: any valid email + 4+ char password</div>
-              <div>e.g. care@test.com / pass1234</div>
+            <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+              <span style={{ fontSize: '0.85rem', color: '#5a5a72' }}>
+                {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+              </span>
+              <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }} style={{
+                background: 'none', border: 'none', color: '#0ea5e9',
+                cursor: 'pointer', fontSize: '0.85rem', fontWeight: 700,
+                fontFamily: 'Inter, sans-serif', textDecoration: 'underline'
+              }}>
+                {mode === 'login' ? 'Register Now' : 'Sign In'}
+              </button>
             </div>
           </div>
         </div>

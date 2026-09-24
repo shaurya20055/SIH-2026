@@ -90,9 +90,9 @@ export default function CursorGrid({
       });
     };
 
-    container.addEventListener('mousemove', onMouseMove);
-    container.addEventListener('mouseleave', onMouseLeave);
-    container.addEventListener('click', onClick);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseleave', onMouseLeave);
+    window.addEventListener('click', onClick);
 
     const ro = new ResizeObserver(() => {
       resize();
@@ -196,9 +196,9 @@ export default function CursorGrid({
 
     return () => {
       cancelAnimationFrame(animRef.current);
-      container.removeEventListener('mousemove', onMouseMove);
-      container.removeEventListener('mouseleave', onMouseLeave);
-      container.removeEventListener('click', onClick);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseleave', onMouseLeave);
+      window.removeEventListener('click', onClick);
       ro.disconnect();
     };
   }, [cellSize, color, radius, falloff, holdTime, fadeDuration, lineWidth, maxOpacity, fillOpacity, gridOpacity, cellRadius, clickPulse, pulseSpeed]);
@@ -207,7 +207,7 @@ export default function CursorGrid({
     <div
       ref={containerRef}
       className={className}
-      style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'auto', ...style }}
+      style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', ...style }}
     >
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
     </div>

@@ -2,7 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF, OrbitControls, Environment, Float } from '@react-three/drei';
 
-export function Model(props) {
+// `dragging` is a ref shared with OrbitControls so the auto-spin can pause while the user grabs the brain
+export function Model({ dragging, ...props }) {
   const group = useRef();
   // Ensure the model is loaded properly. We use primitive to render the loaded scene.
   const { scene } = useGLTF('/Brain_Model.glb');
@@ -20,8 +21,8 @@ export function Model(props) {
   }, [scene]);
 
   useFrame((state, delta) => {
-    if (group.current) {
-      // Slow auto-rotation
+    // Slow auto-rotation (paused while the user is dragging)
+    if (group.current && !dragging?.current) {
       group.current.rotation.y += delta * 0.15;
     }
   });
@@ -37,6 +38,8 @@ export function Model(props) {
 useGLTF.preload('/Brain_Model.glb');
 
 export default function BrainModel3D() {
+  const dragging = useRef(false);
+
   return (
     <div
       style={{ width: '100%', height: '100%', minHeight: '500px', cursor: 'grab', position: 'relative', zIndex: 10 }}
@@ -55,9 +58,20 @@ export default function BrainModel3D() {
           floatIntensity={0.8}
           floatingRange={[-0.05, 0.05]}
         >
-          <Model scale={1.5} position={[0, -0.2, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]} />
+          <Model dragging={dragging} scale={1.5} position={[0, -0.2, 0]} rotation={[Math.PI / 2, 0, Math.PI / 2]} />
         </Float>
-        <OrbitControls enableZoom={false} enablePan={false} autoRotate={false} rotateSpeed={0.4} />
+        {/* Rotate is now enabled so the brain can be grabbed and turned; zoom/pan stay off */}
+        <OrbitControls
+          enableZoom={false}
+          enablePan={false}
+          enableRotate
+          enableDamping
+          dampingFactor={0.08}
+          rotateSpeed={0.8}
+          autoRotate={false}
+          onStart={() => { dragging.current = true; }}
+          onEnd={() => { dragging.current = false; }}
+        />
       </Canvas>
     </div>
   );
