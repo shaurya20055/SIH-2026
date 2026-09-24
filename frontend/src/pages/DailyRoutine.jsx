@@ -78,7 +78,7 @@ export default function DailyRoutine({ patientId }) {
     <div className="game-container">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="game-header">
         <div className="flex items-center justify-between mb-2">
-          <button className="btn btn-ghost" onClick={() => navigate('/games')}>
+          <button className="btn btn-ghost" onClick={() => navigate('/dashboard/games')}>
             <ArrowLeft size={18} /> Back
           </button>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Daily Routine</span>
@@ -150,7 +150,7 @@ export default function DailyRoutine({ patientId }) {
             }}>
               Try Again
             </button>
-            <button className="btn btn-secondary" onClick={() => navigate('/games')}>
+            <button className="btn btn-secondary" onClick={() => navigate('/dashboard/games')}>
               More Games
             </button>
           </div>

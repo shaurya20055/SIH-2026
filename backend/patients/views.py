@@ -2,11 +2,11 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from .models import Patient, MemoryItem, MoodLog, SocialGreeting, Prescription, UserProfile
+from .models import Patient, MemoryItem, MoodLog, SocialGreeting, Prescription, UserProfile, Appointment, Medicine, DailyCareTask
 from .serializers import (
     UserSerializer, RegisterSerializer, PatientSerializer,
     MemoryItemSerializer, MoodLogSerializer, SocialGreetingSerializer,
-    PrescriptionSerializer,
+    PrescriptionSerializer, AppointmentSerializer, MedicineSerializer, DailyCareTaskSerializer
 )
 
 
@@ -121,6 +121,48 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Prescription.objects.all().order_by('-created_at')
+        patient_id = self.request.query_params.get('patient_id')
+        if patient_id:
+            qs = qs.filter(patient_id=patient_id)
+        return qs
+
+
+class AppointmentViewSet(viewsets.ModelViewSet):
+    queryset = Appointment.objects.all()
+    serializer_class = AppointmentSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = Appointment.objects.all().order_by('-date_time')
+        patient_id = self.request.query_params.get('patient_id')
+        doctor_id = self.request.query_params.get('doctor_id')
+        if patient_id:
+            qs = qs.filter(patient_id=patient_id)
+        if doctor_id:
+            qs = qs.filter(doctor_id=doctor_id)
+        return qs
+
+
+class MedicineViewSet(viewsets.ModelViewSet):
+    queryset = Medicine.objects.all()
+    serializer_class = MedicineSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = Medicine.objects.all()
+        patient_id = self.request.query_params.get('patient_id')
+        if patient_id:
+            qs = qs.filter(patient_id=patient_id)
+        return qs
+
+
+class DailyCareTaskViewSet(viewsets.ModelViewSet):
+    queryset = DailyCareTask.objects.all()
+    serializer_class = DailyCareTaskSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        qs = DailyCareTask.objects.all()
         patient_id = self.request.query_params.get('patient_id')
         if patient_id:
             qs = qs.filter(patient_id=patient_id)

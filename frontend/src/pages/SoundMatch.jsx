@@ -93,7 +93,7 @@ export default function SoundMatch({ patientId }) {
         try {
           saveSession({ patient: patientId, game_type: 'sound_match', score: accuracy, accuracy, duration_seconds: elapsed, cognitive_level: 1 });
         } catch { }
-        navigate('/game-complete', { state: { score: accuracy, xp: 25, game: 'Sound Match', correct: score + (correct ? 1 : 0), total: QUESTIONS.length } });
+        navigate('/dashboard/game-complete', { state: { score: accuracy, xp: 25, game: 'Sound Match', correct: score + (correct ? 1 : 0), total: QUESTIONS.length } });
       }
     }, 1500);
   };
@@ -102,7 +102,7 @@ export default function SoundMatch({ patientId }) {
     <div className="game-container">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="game-header">
         <div className="flex items-center justify-between mb-2">
-          <button className="btn btn-ghost" onClick={() => navigate('/games')}>
+          <button className="btn btn-ghost" onClick={() => navigate('/dashboard/games')}>
             <ArrowLeft size={18} /> Back
           </button>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{idx + 1} / {QUESTIONS.length}</span>

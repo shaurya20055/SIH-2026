@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, Patient, MemoryItem, MoodLog, SocialGreeting, Prescription
+from django.contrib.auth.models import User
+from .models import UserProfile, Patient, MemoryItem, MoodLog, SocialGreeting, Prescription, Appointment, Medicine, DailyCareTask
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -75,5 +76,29 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         model = Prescription
         fields = '__all__'
 
+
+class AppointmentSerializer(serializers.ModelSerializer):
+    patient_name = serializers.ReadOnlyField(source='patient.name')
+    doctor_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Appointment
+        fields = '__all__'
+
     def get_doctor_name(self, obj):
         return f"Dr. {obj.doctor.first_name} {obj.doctor.last_name}"
+
+    def get_doctor_name(self, obj):
+        return f"Dr. {obj.doctor.first_name} {obj.doctor.last_name}"
+
+
+class MedicineSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Medicine
+        fields = '__all__'
+
+
+class DailyCareTaskSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DailyCareTask
+        fields = '__all__'

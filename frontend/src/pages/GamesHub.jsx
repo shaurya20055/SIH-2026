@@ -12,15 +12,9 @@ const GAMES = [
   { id: 'flip-card', title: 'Memory Match', desc: 'Match pairs of cards by flipping them', category: 'Memory', difficulty: 'Easy', duration: '5 min', xp: 30, progress: 45, gradient: 'linear-gradient(135deg, rgba(34,211,238,0.15), rgba(59,130,246,0.08))' },
   { id: 'sound-match', title: 'Sound Match', desc: 'Listen to sounds and identify them', category: 'Recognition', difficulty: 'Medium', duration: '3 min', xp: 25, progress: 30, gradient: 'linear-gradient(135deg, rgba(245,158,11,0.15), rgba(251,146,60,0.08))' },
   { id: 'daily-routine', title: 'Daily Routine Recall', desc: 'Arrange daily activities in the right order', category: 'Daily Recall', difficulty: 'Easy', duration: '2 min', xp: 20, progress: 75, gradient: 'linear-gradient(135deg, rgba(244,114,182,0.15), rgba(192,38,211,0.08))' },
-  { id: 'odd-one-out', title: 'Find the Odd One Out', desc: 'Sharpen your observation skills', category: 'Attention', difficulty: 'Medium', duration: '2 min', xp: 20, progress: 0, gradient: 'linear-gradient(135deg, rgba(52,211,153,0.15), rgba(20,184,166,0.08))' },
   { id: 'pattern-master', title: 'Pattern Master', desc: 'Complete the sequence pattern', category: 'Pattern', difficulty: 'Medium', duration: '3 min', xp: 30, progress: 0, gradient: 'linear-gradient(135deg, rgba(124,58,237,0.12), rgba(34,211,238,0.1))' },
-  { id: 'word-memory', title: 'Word Memory', desc: 'Remember and recall words', category: 'Language', difficulty: 'Easy', duration: '3 min', xp: 20, progress: 0, gradient: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(192,38,211,0.08))' },
-  { id: 'object-recognition', title: 'Object Recognition', desc: 'Identify everyday objects', category: 'Recognition', difficulty: 'Easy', duration: '2 min', xp: 15, progress: 0, gradient: 'linear-gradient(135deg, rgba(245,158,11,0.12), rgba(244,114,182,0.08))' },
-  { id: 'emotion-match', title: 'Emotion Match', desc: 'Match emotions with expressions', category: 'Emotions', difficulty: 'Easy', duration: '2 min', xp: 20, progress: 0, gradient: 'linear-gradient(135deg, rgba(251,146,60,0.15), rgba(248,113,113,0.08))' },
-  { id: 'family-connection', title: 'Family Connection', desc: 'Connect with your family memories', category: 'Social', difficulty: 'Easy', duration: '5 min', xp: 25, progress: 0, gradient: 'linear-gradient(135deg, rgba(52,211,153,0.12), rgba(34,211,238,0.1))' },
+  { id: 'word-memory', title: 'Word Memory', desc: 'Remember and recall words', category: 'Language', difficulty: 'Easy', duration: '3 min', xp: 20, progress: 0, gradient: 'linear-gradient(135deg, rgba(139,92,246,0.15), rgba(192,38,211,0.08))' }
 ];
-
-const PLAYABLE = ['face-recall', 'flip-card', 'sound-match', 'daily-routine'];
 
 export default function GamesHub({ patientId }) {
   const { t } = useTranslation();
@@ -65,18 +59,17 @@ export default function GamesHub({ patientId }) {
       {/* Game Grid */}
       <div className="grid-2" ref={gridRef}>
         {filtered.map((game) => {
-          const playable = PLAYABLE.includes(game.id);
           return (
             <motion.div
               key={game.id}
               className="game-card"
-              onClick={() => playable ? navigate(`/game/${game.id}`) : null}
+              onClick={() => navigate(`/dashboard/game/${game.id}`)}
               style={{
                 background: game.gradient,
-                cursor: playable ? 'pointer' : 'default',
-                opacity: playable ? 1 : 0.6,
+                cursor: 'pointer',
+                opacity: 1,
               }}
-              whileHover={playable ? { y: -2, boxShadow: '0 0 20px rgba(124,58,237,0.12)' } : {}}
+              whileHover={{ y: -2, boxShadow: '0 0 20px rgba(124,58,237,0.12)' }}
             >
               <div>
                 <div className="game-title">{game.title}</div>
@@ -99,10 +92,6 @@ export default function GamesHub({ patientId }) {
                   <Zap size={12} /> +{game.xp} XP
                 </span>
               </div>
-
-              {!playable && (
-                <span className="badge badge-warning" style={{ alignSelf: 'flex-start' }}>Coming Soon</span>
-              )}
             </motion.div>
           );
         })}

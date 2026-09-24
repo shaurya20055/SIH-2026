@@ -137,3 +137,41 @@ class Prescription(models.Model):
 
     def __str__(self):
         return f"Rx for {self.patient.name} by Dr. {self.doctor.username}"
+
+
+class Appointment(models.Model):
+    """Doctor appointments booked by patients."""
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='appointments')
+    doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments_as_doctor')
+    date_time = models.DateTimeField()
+    issue_description = models.TextField()
+    status = models.CharField(max_length=20, default='pending') # pending, confirmed, completed
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Appt: {self.patient.name} with Dr. {self.doctor.username}"
+
+
+class Medicine(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='medicines')
+    name = models.CharField(max_length=100)
+    time = models.CharField(max_length=50) # 'Morning', '08:00 AM', etc.
+    dosage = models.CharField(max_length=50)
+    instructions = models.TextField(blank=True)
+    taken = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} for {self.patient.name}"
+
+
+class DailyCareTask(models.Model):
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='daily_care_tasks')
+    title = models.CharField(max_length=100)
+    time = models.CharField(max_length=50, blank=True)
+    icon = models.CharField(max_length=50, blank=True)
+    done = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} for {self.patient.name}"

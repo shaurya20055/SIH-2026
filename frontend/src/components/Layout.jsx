@@ -5,20 +5,20 @@ import AIAssistant from './AIAssistant';
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: Home, label: 'Home' },
-  { to: '/games', icon: Gamepad2, label: 'Brain Games' },
-  { to: '/daily-care', icon: Heart, label: 'Daily Care' },
-  { to: '/medicines', icon: Pill, label: 'Medicines' },
-  { to: '/appointments', icon: Calendar, label: 'Appointments' },
-  { to: '/progress', icon: BarChart3, label: 'Progress' },
-  { to: '/connect', icon: Users, label: 'Connect' },
+  { to: '/dashboard/games', icon: Gamepad2, label: 'Brain Games' },
+  { to: '/dashboard/daily-care', icon: Heart, label: 'Daily Care' },
+  { to: '/dashboard/medicines', icon: Pill, label: 'Medicines' },
+  { to: '/dashboard/appointments', icon: Calendar, label: 'Appointments' },
+  { to: '/dashboard/progress', icon: BarChart3, label: 'Progress' },
+  { to: '/dashboard/connect', icon: Users, label: 'Connect' },
 ];
 
 const MOBILE_NAV = [
   { to: '/dashboard', icon: Home, label: 'Home' },
-  { to: '/games', icon: Gamepad2, label: 'Games' },
-  { to: '/daily-care', icon: Heart, label: 'Care' },
-  { to: '/medicines', icon: Pill, label: 'Meds' },
-  { to: '/progress', icon: BarChart3, label: 'Progress' },
+  { to: '/dashboard/games', icon: Gamepad2, label: 'Games' },
+  { to: '/dashboard/daily-care', icon: Heart, label: 'Care' },
+  { to: '/dashboard/medicines', icon: Pill, label: 'Meds' },
+  { to: '/dashboard/progress', icon: BarChart3, label: 'Progress' },
 ];
 
 export default function Layout({ patientId }) {

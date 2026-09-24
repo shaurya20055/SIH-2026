@@ -76,7 +76,7 @@ export default function GameComplete({ patientId }) {
 
         {/* Actions */}
         <div className="flex flex-col gap-2 gsap-item">
-          <button className="btn btn-primary btn-lg w-full" onClick={() => navigate('/games')}>
+          <button className="btn btn-primary btn-lg w-full" onClick={() => navigate('/dashboard/games')}>
             Play Another Game <ArrowRight size={18} />
           </button>
           <button className="btn btn-secondary w-full" onClick={() => navigate('/dashboard')}>

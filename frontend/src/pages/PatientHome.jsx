@@ -140,7 +140,7 @@ export default function PatientHome({ patientId }) {
 
         <motion.button
           className="btn btn-primary btn-lg"
-          onClick={() => navigate('/games')}
+          onClick={() => navigate('/dashboard/games')}
           style={{ marginTop: '1.5rem' }}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -179,7 +179,7 @@ export default function PatientHome({ patientId }) {
             <motion.div
               key={game.id}
               className="game-card"
-              onClick={() => navigate(`/game/${game.id}`)}
+              onClick={() => navigate(`/dashboard/game/${game.id}`)}
               style={{ background: game.gradient, alignItems: 'center', textAlign: 'center', padding: '1.75rem 1rem' }}
               whileHover={{ y: -2, boxShadow: '0 0 20px rgba(124,58,237,0.12)' }}
             >
@@ -196,7 +196,7 @@ export default function PatientHome({ patientId }) {
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Bell size={20} /> Today's Reminders
             </h2>
-            <button className="btn btn-ghost text-accent" onClick={() => navigate('/reminders')}>
+            <button className="btn btn-ghost text-accent" onClick={() => navigate('/dashboard/reminders')}>
               View all
             </button>
           </div>

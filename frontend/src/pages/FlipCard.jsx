@@ -89,7 +89,7 @@ export default function FlipCard({ patientId }) {
               saveSession({ patient: patientId, game_type: 'flip_card', score: accuracy, accuracy: Math.min(accuracy, 100), duration_seconds: elapsed, cognitive_level: 1 });
             } catch { }
             setTimeout(() => {
-              navigate('/game-complete', { state: { score: Math.min(accuracy, 100), xp: 30, game: 'Memory Match', correct: cards.length / 2, total: cards.length / 2 } });
+              navigate('/dashboard/game-complete', { state: { score: Math.min(accuracy, 100), xp: 30, game: 'Memory Match', correct: cards.length / 2, total: cards.length / 2 } });
             }, 600);
           }
 
@@ -115,7 +115,7 @@ export default function FlipCard({ patientId }) {
     <div className="game-container">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="game-header">
         <div className="flex items-center justify-between mb-2">
-          <button className="btn btn-ghost" onClick={() => navigate('/games')}>
+          <button className="btn btn-ghost" onClick={() => navigate('/dashboard/games')}>
             <ArrowLeft size={18} /> Back
           </button>
           <div className="flex items-center gap-3">

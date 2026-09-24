@@ -63,7 +63,19 @@ export default function DoctorDashboard() {
   const [tab, setTab] = useState('overview');
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [search, setSearch] = useState('');
+  const [appointments, setAppointments] = useState([]);
   const staffName = localStorage.getItem('staff_name') || 'Doctor';
+  const doctorId = localStorage.getItem('mm_staff_id') || '3'; // Assuming Dr. Borah is ID 3 from seed
+
+  useEffect(() => {
+    // Fetch appointments for this doctor
+    fetch(`http://127.0.0.1:8000/api/appointments/?doctor_id=${doctorId}`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) setAppointments(data);
+      })
+      .catch(console.error);
+  }, [doctorId]);
 
   useEffect(() => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
@@ -83,6 +95,7 @@ export default function DoctorDashboard() {
 
   const TABS = [
     { key: 'overview', label: 'Overview', icon: BarChart3 },
+    { key: 'appointments', label: 'Appointments', icon: Calendar, count: appointments.length },
     { key: 'patients', label: 'My Patients', icon: Users, count: MY_PATIENTS.length },
     { key: 'past', label: 'Past Patients', icon: BookOpen, count: PAST_PATIENTS.length },
     { key: 'profile', label: 'My Profile', icon: User },
@@ -223,6 +236,58 @@ export default function DoctorDashboard() {
                 <button onClick={() => { setSelectedPatient(p); setTab('patients'); }} style={{ padding: '0.4rem 0.875rem', borderRadius: '8px', border: '1px solid rgba(245,158,11,0.3)', background: 'rgba(245,158,11,0.08)', color: '#fbbf24', cursor: 'pointer', fontSize: '0.8rem', fontFamily: 'Inter, sans-serif' }}>View</button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ---- APPOINTMENTS TAB ---- */}
+        {tab === 'appointments' && (
+          <div className="doc-main" style={{ animation: 'fadeIn 0.5s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Patient Appointments & Issues</h2>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {appointments.length === 0 ? (
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '3rem', textAlign: 'center', borderRadius: '16px', color: '#94a3b8' }}>
+                  No upcoming appointments or issues reported.
+                </div>
+              ) : appointments.map((apt) => (
+                <div key={apt.id} className="doc-row" style={{ background: 'rgba(10,10,20,0.8)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: `4px solid ${apt.status === 'pending' ? '#f59e0b' : '#10b981'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(124,58,237,0.15)', color: '#a78bfa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.2rem' }}>
+                        {apt.patient_name?.[0] || 'P'}
+                      </div>
+                      <div>
+                        <h3 style={{ fontSize: '1.2rem', margin: 0 }}>{apt.patient_name}</h3>
+                        <p style={{ color: '#94a3b8', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>{new Date(apt.date_time).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <span style={{ background: apt.status === 'pending' ? 'rgba(245,158,11,0.1)' : 'rgba(16,185,129,0.1)', color: apt.status === 'pending' ? '#f59e0b' : '#10b981', padding: '0.4rem 0.8rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>
+                      {apt.status}
+                    </span>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <strong style={{ color: '#e2e8f0', display: 'block', marginBottom: '0.5rem' }}>Reported Issue / Symptoms:</strong>
+                    <p style={{ color: '#cbd5e1', lineHeight: 1.5, margin: 0 }}>{apt.issue_description}</p>
+                  </div>
+                  {apt.status === 'pending' && (
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <button onClick={() => {
+                        fetch(`http://127.0.0.1:8000/api/appointments/${apt.id}/`, {
+                          method: 'PATCH',
+                          headers: {'Content-Type': 'application/json'},
+                          body: JSON.stringify({status: 'confirmed'})
+                        }).then(() => {
+                          setAppointments(appointments.map(a => a.id === apt.id ? {...a, status: 'confirmed'} : a));
+                        });
+                      }} style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)', padding: '0.6rem 1.2rem', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <CheckCircle size={18} /> Confirm Appointment
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

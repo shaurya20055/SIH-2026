@@ -67,7 +67,7 @@ export default function PatientLogin({ onLogin }) {
       setSuccess('Login successful! Redirecting...');
       setTimeout(() => {
         if (onLogin) onLogin(localStorage.getItem('mm_patient_id') || '1');
-        else navigate('/dashboard');
+        navigate('/dashboard');
       }, 800);
     } catch (err) {
       // Fallback: demo login
@@ -78,7 +78,7 @@ export default function PatientLogin({ onLogin }) {
       setSuccess('Demo login successful!');
       setTimeout(() => {
         if (onLogin) onLogin('1');
-        else navigate('/dashboard');
+        navigate('/dashboard');
       }, 800);
     }
     setLoading(false);

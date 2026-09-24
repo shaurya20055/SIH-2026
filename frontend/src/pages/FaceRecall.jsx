@@ -67,7 +67,7 @@ export default function FaceRecall({ patientId }) {
         try {
           saveSession({ patient: patientId, game_type: 'face_recall', score: accuracy, accuracy, duration_seconds: elapsed, cognitive_level: 1 });
         } catch { }
-        navigate('/game-complete', { state: { score: accuracy, xp: 25, game: 'Face Recall', correct: score + (correct ? 1 : 0), total: questions.length } });
+        navigate('/dashboard/game-complete', { state: { score: accuracy, xp: 25, game: 'Face Recall', correct: score + (correct ? 1 : 0), total: questions.length } });
       }
     }, 1500);
   };
@@ -97,7 +97,7 @@ export default function FaceRecall({ patientId }) {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="game-header">
         <div className="flex items-center justify-between mb-2">
-          <button className="btn btn-ghost" onClick={() => navigate('/games')}>
+          <button className="btn btn-ghost" onClick={() => navigate('/dashboard/games')}>
             <ArrowLeft size={18} /> Back
           </button>
           <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>

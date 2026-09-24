@@ -8,6 +8,9 @@ router.register(r'memory', views.MemoryItemViewSet)
 router.register(r'mood', views.MoodLogViewSet)
 router.register(r'greetings', views.SocialGreetingViewSet)
 router.register(r'prescriptions', views.PrescriptionViewSet)
+router.register(r'appointments', views.AppointmentViewSet)
+router.register(r'medicines', views.MedicineViewSet)
+router.register(r'daily-tasks', views.DailyCareTaskViewSet)
 router.register(r'users', views.UserViewSet)
 
 urlpatterns = [
